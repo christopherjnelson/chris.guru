@@ -1,5 +1,6 @@
 ---
 import '../styles/global.css';
+import ChatWidget from '../components/ChatWidget.astro';
 
 interface Props {
   title?: string;
@@ -50,5 +51,6 @@ const { title = 'Chris — Portfolio' } = Astro.props;
     <footer class="mx-auto max-w-3xl px-6 py-8 text-xs text-slate-500">
       <p>&copy; {new Date().getFullYear()} Chris. Built with Astro SSR.</p>
     </footer>
+    <ChatWidget />
   </body>
 </html>

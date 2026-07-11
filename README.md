@@ -1,6 +1,6 @@
 # Autonomous Portfolio CMS
 
-A lightweight, server-side rendered portfolio website built with **Astro** and configured to run as a standalone Node.js server, designed for deployment behind an Nginx reverse proxy. Data is powered by a headless **Supabase** backend, with a secure webhook endpoint for n8n to post new achievements.
+A lightweight, server-side rendered portfolio website built with **Astro** and configured to run as a standalone Node.js server, designed for deployment behind an Nginx reverse proxy. Data is powered by a headless **Supabase** backend, with a secure webhook endpoint for n8n to post new achievements and an AI chat widget ("Ziggy") powered by an n8n webhook.
 
 ## Tech Stack
 
@@ -10,6 +10,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 | Adapter      | [`@astrojs/node`](https://docs.astro.build/en/guides/integrations-guide/node/) — `mode: 'standalone'` |
 | Styling      | [Tailwind CSS](https://tailwindcss.com) v4 (via `@tailwindcss/vite`) |
 | Database     | [Supabase](https://supabase.com) (PostgreSQL) — headless data layer |
+| AI Chat      | n8n webhook (proxied via Astro API route)       |
 | Language     | TypeScript (strict)                             |
 | Runtime      | Node.js 18.20.8+ / 20.3+ / 22+                  |
 
@@ -21,6 +22,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 - **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
 - **Projects stub** — placeholder section for future project highlights.
 - **FAQ accordion** — 12 frequently asked questions using native `<details>`/`<summary>` elements with progressive disclosure (first 5 visible, "Show all" button reveals the rest).
+- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues.
 - **JSON health endpoint** — `GET /api/test` returns `{"status":"Node SSR is active"}` to verify server endpoints.
 - **n8n webhook endpoint** — `POST /api/webhooks/achievement` accepts authorized POST requests to insert new achievements into Supabase.
 
@@ -29,6 +31,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 - **Node.js** — 18.20.8, 20.3+, or 22+ (developed on Node 24)
 - **npm** — 10+ (developed on npm 11)
 - **Supabase project** — a Supabase project with `skills` and `posts` tables (see [Database Schema](#database-schema))
+- **n8n workflow** — an n8n chat webhook for the Ziggy AI assistant (see [Environment Variables](#environment-variables))
 
 ## Environment Variables
 
@@ -38,6 +41,7 @@ Create a `.env` file in the project root (do not commit it — it's in `.gitigno
 PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 WEBHOOK_SECRET="your-secret-key-for-n8n"
+N8N_CHAT_WEBHOOK="https://your-n8n-instance/webhook/your-chat-webhook-id"
 ```
 
 | Variable                      | Description                                      |
@@ -45,6 +49,7 @@ WEBHOOK_SECRET="your-secret-key-for-n8n"
 | `PUBLIC_SUPABASE_URL`         | Supabase project URL (public, safe for client)  |
 | `PUBLIC_SUPABASE_ANON_KEY`    | Supabase anon key (public, used for SSR reads)  |
 | `WEBHOOK_SECRET`              | Shared secret for n8n webhook authorization      |
+| `N8N_CHAT_WEBHOOK`            | n8n webhook URL for Ziggy AI chat proxy (server-side only) |
 
 ## Getting Started
 
@@ -121,12 +126,15 @@ portfolio/
     ├── lib/
     │   ├── supabase.ts     # Supabase client initialization
     │   └── mockData.ts     # Legacy mock data (no longer imported)
+    ├── components/
+    │   └── ChatWidget.astro # Floating "Ziggy" AI chat widget (vanilla JS)
     ├── layouts/
-    │   └── Layout.astro    # Dark-mode shell + top nav with avatar (About, Skills, Feed, Projects, FAQ)
+    │   └── Layout.astro    # Dark-mode shell + top nav with avatar + global ChatWidget
     └── pages/
         ├── index.astro     # Home: SSR fetch from Supabase (skills + achievements feed) + FAQ accordion
         └── api/
             ├── test.ts              # GET /api/test → {"status":"Node SSR is active"}
+            ├── chat.ts              # POST /api/chat → proxy to n8n webhook for Ziggy AI
             └── webhooks/
                 └── achievement.ts   # POST /api/webhooks/achievement → insert to Supabase
 ```
@@ -136,7 +144,18 @@ portfolio/
 | Method | Route                          | Auth                          | Response                          | Description                                      |
 | ------ | ------------------------------ | ----------------------------- | --------------------------------- | ------------------------------------------------ |
 | `GET`  | `/api/test`                    | None                          | `{"status":"Node SSR is active"}` | Health check / SSR verification                  |
+| `POST` | `/api/chat`                    | None                          | `{"reply":"..."}`                 | Proxy user message to n8n webhook for Ziggy AI   |
 | `POST` | `/api/webhooks/achievement`    | `Authorization` header        | `{"success":true}`                | Insert a new achievement into Supabase (for n8n) |
+
+### Chat API Usage
+
+```bash
+curl -X POST http://localhost:4321/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{"message":"What does Chris do?"}'
+```
+
+The proxy sends `{"chatInput": "What does Chris do?"}` to the n8n webhook and returns `{"reply": "Ziggy's response"}`.
 
 ### Webhook Usage
 
@@ -188,6 +207,7 @@ CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHEC
 - [x] ~~Secure webhook endpoint for n8n achievement posts~~ — **Done**
 - [x] ~~FAQ accordion with progressive disclosure~~ — **Done: 12 items, show/hide pattern**
 - [x] ~~Nav avatar with circular border~~ — **Done: `public/avatar.png`**
+- [x] ~~Ziggy AI chat widget with n8n proxy~~ — **Done: floating widget, vanilla JS, API proxy route**
 - [ ] **Feed pagination / progressive disclosure** — Implement "Load More" pattern for the achievements feed (fetch 20 from Supabase, show 5, reveal next 5 on click). Matches the FAQ progressive disclosure pattern. Prevents the page from growing infinitely tall as backdated/backfilled items accumulate. Alternative options considered: horizontal carousel, SSR query-param pagination, 2-column grid.
 - [ ] Add authentication & admin middleware for content management
 - [ ] Build out the Projects section with detail pages
