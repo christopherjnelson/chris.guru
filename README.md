@@ -22,7 +22,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 - **Certifications section** — certifications separated from skills into their own full-width section. If a `url` is provided, the cert renders as a clickable external link with an icon.
 - **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
 - **Projects stub** — placeholder section for future project highlights.
-- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues.
+- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses support HTML formatting (e.g., `<strong>`, `<br>`, `<ul>`); user input is escaped via `textContent` for XSS safety.
 - **Enhanced footer** — 3-column layout with navigation links, social links (LinkedIn, GitHub), and humorous "AI Reviews" from Gemini, ChatGPT, and Grok with stylized logos.
 - **JSON health endpoint** — `GET /api/test` returns `{"status":"Node SSR is active"}` to verify server endpoints.
 - **n8n webhook endpoint** — `POST /api/webhooks/achievement` accepts authorized POST requests to insert new achievements into Supabase.

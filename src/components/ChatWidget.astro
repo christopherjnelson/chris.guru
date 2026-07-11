@@ -108,7 +108,14 @@
       sender === 'user'
         ? 'max-w-[80%] rounded-2xl rounded-tr-sm bg-sky-500 px-3 py-2 text-sm text-white'
         : 'max-w-[80%] rounded-2xl rounded-tl-sm bg-slate-800 px-3 py-2 text-sm text-slate-200';
-    bubble.textContent = text;
+
+    // Bot responses use innerHTML to render HTML formatting from the server.
+    // User input uses textContent to prevent XSS.
+    if (sender === 'bot') {
+      bubble.innerHTML = text;
+    } else {
+      bubble.textContent = text;
+    }
 
     wrapper.appendChild(bubble);
     messages.appendChild(wrapper);
