@@ -16,7 +16,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 
 ## Features
 
-- **Dark-mode-preferred UI** — clean, minimal slate/sky theme with a sticky top navigation bar featuring a cartoon avatar.
+- **Dark-mode-preferred UI** — clean, minimal slate/sky theme with a sticky top navigation bar featuring a cartoon avatar, social icons (LinkedIn, GitHub), and a responsive hamburger menu for mobile.
 - **About section** — short introduction to Chris, an IT administrator specializing in cloud identity and endpoint management.
 - **Skills grid** — skills fetched from Supabase, grouped by category.
 - **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
@@ -129,7 +129,7 @@ portfolio/
     ├── components/
     │   └── ChatWidget.astro # Floating "Ziggy" AI chat widget (vanilla JS)
     ├── layouts/
-    │   └── Layout.astro    # Dark-mode shell + top nav with avatar + global ChatWidget
+    │   └── Layout.astro    # Dark-mode shell + responsive nav (hamburger on mobile) with avatar, socials + global ChatWidget
     └── pages/
         ├── index.astro     # Home: SSR fetch from Supabase (skills + achievements feed) + FAQ accordion
         └── api/
@@ -208,6 +208,7 @@ CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHEC
 - [x] ~~FAQ accordion with progressive disclosure~~ — **Done: 12 items, show/hide pattern**
 - [x] ~~Nav avatar with circular border~~ — **Done: `public/avatar.png`**
 - [x] ~~Ziggy AI chat widget with n8n proxy~~ — **Done: floating widget, vanilla JS, API proxy route**
+- [x] ~~Responsive mobile nav + social icons~~ — **Done: hamburger menu, LinkedIn/GitHub icons (christopherjnelson)**
 - [ ] **Feed pagination / progressive disclosure** — Implement "Load More" pattern for the achievements feed (fetch 20 from Supabase, show 5, reveal next 5 on click). Matches the FAQ progressive disclosure pattern. Prevents the page from growing infinitely tall as backdated/backfilled items accumulate. Alternative options considered: horizontal carousel, SSR query-param pagination, 2-column grid.
 - [ ] Add authentication & admin middleware for content management
 - [ ] Build out the Projects section with detail pages
