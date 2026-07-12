@@ -11,18 +11,19 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 | Styling      | [Tailwind CSS](https://tailwindcss.com) v4 (via `@tailwindcss/vite`) |
 | Database     | [Supabase](https://supabase.com) (PostgreSQL) — headless data layer |
 | AI Chat      | n8n webhook (proxied via Astro API route)       |
+| Markdown     | [marked](https://marked.js.org) — markdown-to-HTML parsing for chat |
 | Language     | TypeScript (strict)                             |
 | Runtime      | Node.js 18.20.8+ / 20.3+ / 22+                  |
 
 ## Features
 
 - **Dark-mode-preferred UI** — clean, minimal slate/sky theme with a sticky top navigation bar featuring a cartoon avatar, social icons (LinkedIn, GitHub), and a responsive hamburger menu for mobile.
-- **About section** — short introduction to Chris, an IT administrator specializing in cloud identity and endpoint management.
-- **Skills grid** — skills fetched from Supabase, grouped by category (excludes Certifications).
+- **About section** — expanded two-paragraph bio covering Chris's decade of IT operations experience, hands-on technologies, and real-world achievements, with an inline link to [wiki.chris.guru](https://wiki.chris.guru).
+- **Skills grid** — skills fetched from Supabase, grouped by category (excludes Certifications). Includes a link button to [wiki.chris.guru](https://wiki.chris.guru) for in-depth skill documentation.
 - **Certifications section** — certifications separated from skills into their own full-width section. If a `url` is provided, the cert renders as a clickable external link with an icon.
 - **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
 - **Projects stub** — placeholder section for future project highlights.
-- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses support HTML formatting (e.g., `<strong>`, `<br>`, `<ul>`); user input is escaped via `textContent` for XSS safety.
+- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses parse markdown via `marked` (bold, italic, lists, code, links, headings, blockquotes) with DOM-based sanitization for XSS safety; user input is escaped via `textContent`. Paragraph and `<br>` spacing tuned for readable multi-paragraph responses.
 - **Enhanced footer** — 3-column layout with navigation links, social links (LinkedIn, GitHub), and humorous "AI Reviews" from Gemini, ChatGPT, and Grok with stylized logos.
 - **JSON health endpoint** — `GET /api/test` returns `{"status":"Node SSR is active"}` to verify server endpoints.
 - **n8n webhook endpoint** — `POST /api/webhooks/achievement` accepts authorized POST requests to insert new achievements into Supabase.
@@ -120,7 +121,8 @@ portfolio/
 ├── .env                    # Environment variables (not committed)
 ├── .gitignore
 ├── public/
-│   └── avatar.png          # Cartoon avatar for nav bar
+│   ├── avatar.png          # Cartoon avatar for nav bar (1024x1024)
+│   └── favicon.png         # Favicon for browser tabs (1024x1024)
 └── src/
     ├── styles/
     │   └── global.css      # Tailwind v4 import + dark mode variant
@@ -213,6 +215,9 @@ CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHEC
 - [x] ~~Certifications section with URL links~~ — **Done: split from Skills, full-width, external link support**
 - [x] ~~Enhanced footer with AI reviews~~ — **Done: 3-column footer (nav, socials, Gemini/ChatGPT/Grok reviews)**
 - [x] ~~FAQ section removed~~ — **Done: FAQ data moved to Ziggy chatbot**
+- [x] ~~Favicon~~ — **Done: `public/favicon.png` linked in Layout.astro head**
+- [x] ~~Markdown formatting for Ziggy chat~~ — **Done: `marked` library with DOM-based sanitization**
+- [x] ~~Wiki links~~ — **Done: inline link in About + button in Skills section pointing to wiki.chris.guru**
 - [ ] **Feed pagination / progressive disclosure** — Implement "Load More" pattern for the achievements feed (fetch 20 from Supabase, show 5, reveal next 5 on click). Prevents the page from growing infinitely tall as backdated/backfilled items accumulate.
 - [ ] Add authentication & admin middleware for content management
 - [ ] Build out the Projects section with detail pages
