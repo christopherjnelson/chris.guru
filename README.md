@@ -105,6 +105,7 @@ The CMS requires environment variables in `CMS/.env` (not committed). See [`CMS/
 | `PUBLIC_SUPABASE_ANON_KEY`    | CMS         | Supabase anon key                                |
 | `WEBHOOK_SECRET`              | CMS         | Shared secret for n8n webhook authorization      |
 | `N8N_CHAT_WEBHOOK`            | CMS         | n8n webhook URL for Ziggy AI chat proxy          |
+| `GITHUB_TOKEN`                | CMS         | GitHub PAT for API rate limit increase (no scopes required) |
 
 GitHub Actions deployment secrets are configured in the repository settings, not in `.env`:
 
@@ -148,7 +149,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 
 - [ ] Export and commit sanitized n8n workflows
 - [ ] Authentication & admin middleware for content management
-- [ ] Build out the Projects section with detail pages
+- [x] Build out the Projects section (GitHub repos via GitHub API)
 - [ ] RSS/Atom feed for achievements
 
 ## License

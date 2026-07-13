@@ -1,7 +1,9 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Feed from '../components/Feed.astro';
+import ProjectCard from '../components/ProjectCard.astro';
 import type { Post } from '../types/post';
+import type { Repo } from '../types/repo';
 import { supabase } from '../lib/supabase';
 
 // Fetch skills from Supabase
@@ -20,6 +22,30 @@ const { data: posts, error: postsError } = await supabase
   .select('id, title, content, type, date, issuer, image_url, url, source')
   .order('date', { ascending: false })
   .limit(20);
+
+// Fetch public GitHub repos (server-side to avoid CORS and rate limits)
+let repos: Repo[] = [];
+let reposError = false;
+try {
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+  };
+  const githubToken = import.meta.env.GITHUB_TOKEN;
+  if (githubToken) {
+    headers.Authorization = `Bearer ${githubToken}`;
+  }
+  const res = await fetch(
+    'https://api.github.com/users/christopherjnelson/repos?sort=updated&per_page=100&type=owner',
+    { headers }
+  );
+  if (!res.ok) throw new Error(`GitHub API returned ${res.status}`);
+  const data = await res.json() as Repo[];
+  repos = data
+    .filter((repo) => !repo.fork)
+    .sort((a, b) => b.stargazers_count - a.stargazers_count);
+} catch {
+  reposError = true;
+}
 
 // Group skills by category for the grid
 const skillsByCategory = (skills ?? []).reduce<Record<string, string[]>>(
@@ -178,11 +204,23 @@ const credsByCategory = (creds ?? []).reduce<Record<string, { name: string; url:
 
   <hr class="my-10 border-slate-800" />
 
-  <!-- Projects (stub) -->
+  <!-- Projects -->
   <section id="projects" class="scroll-mt-20">
     <h2 class="text-2xl font-semibold tracking-tight text-slate-50">Projects</h2>
-    <p class="mt-4 text-sm text-slate-400">
-      Project highlights are coming soon. Check the feed for recent work.
-    </p>
+    {
+      reposError ? (
+        <p class="mt-4 text-sm text-rose-400">
+          Unable to load projects at this time.
+        </p>
+      ) : repos.length === 0 ? (
+        <p class="mt-4 text-sm text-slate-400">No projects found.</p>
+      ) : (
+        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {repos.map((repo) => (
+            <ProjectCard repo={repo} />
+          ))}
+        </div>
+      )
+    }
   </section>
 </Layout>
