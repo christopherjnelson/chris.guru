@@ -111,10 +111,39 @@ server {
 }
 ```
 
+## CI/CD Deployment
+
+This project includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys to a DigitalOcean droplet on every push to the `main` branch.
+
+### How it works
+
+1. A push to `main` triggers the workflow
+2. The workflow uses [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) to SSH into the droplet
+3. It executes `sudo /home/chris/deploy.sh` on the droplet, which pulls the latest code, installs dependencies, builds, and restarts the Node server
+
+### Required GitHub Repository Secrets
+
+| Secret             | Description                                      |
+| ------------------ | ------------------------------------------------ |
+| `DROPLET_IP`       | IP address of the DigitalOcean droplet           |
+| `DROPLET_USER`     | SSH username (e.g., `chris`)                     |
+| `SSH_PRIVATE_KEY`  | Private SSH key authorized on the droplet        |
+
+### Manual deployment
+
+If needed, you can still deploy manually by SSHing into the droplet and running:
+
+```bash
+sudo /home/chris/deploy.sh
+```
+
 ## Project Structure
 
 ```
 portfolio/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml     # GitHub Action: deploy to DigitalOcean on push to main
 ├── astro.config.mjs        # Astro config: server output + Node standalone adapter + Tailwind
 ├── tsconfig.json           # TypeScript strict config (extends astro/tsconfigs/strict)
 ├── package.json
@@ -233,7 +262,7 @@ CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHEC
 - [ ] Add authentication & admin middleware for content management
 - [ ] Build out the Projects section with detail pages
 - [ ] Add RSS/Atom feed for achievements
-- [ ] CI/CD pipeline for automated deployment
+- [x] ~~CI/CD pipeline for automated deployment~~ — **Done: GitHub Action deploys to DigitalOcean droplet via SSH on push to main**
 
 ## License
 
