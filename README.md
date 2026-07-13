@@ -19,8 +19,8 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 
 - **Dark-mode-preferred UI** — clean, minimal slate/sky theme with a sticky top navigation bar featuring a cartoon avatar, social icons (LinkedIn, GitHub), and a responsive hamburger menu for mobile.
 - **About section** — expanded two-paragraph bio covering Chris's decade of IT operations experience, hands-on technologies, and real-world achievements, with an inline link to [wiki.chris.guru](https://wiki.chris.guru).
-- **Skills grid** — skills fetched from Supabase, grouped by category (excludes Certifications). Includes a link button to [wiki.chris.guru](https://wiki.chris.guru) for in-depth skill documentation.
-- **Certifications section** — certifications separated from skills into their own full-width section. If a `url` is provided, the cert renders as a clickable external link with an icon.
+- **Skills grid** — skills fetched from Supabase, grouped by category. Includes a link button to [wiki.chris.guru](https://wiki.chris.guru) for in-depth skill documentation.
+- **Certifications section** — certifications and learning paths fetched from a dedicated `creds` table in Supabase, grouped by category in a grid layout (matching the Skills section). If a `url` is provided, the cred renders as a clickable external link with an icon.
 - **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
 - **Projects stub** — placeholder section for future project highlights.
 - **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses parse markdown via `marked` (bold, italic, lists, code, links, headings, blockquotes) with DOM-based sanitization for XSS safety; user input is escaped via `textContent`. Paragraph and `<br>` spacing tuned for readable multi-paragraph responses.
@@ -32,7 +32,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 
 - **Node.js** — 18.20.8, 20.3+, or 22+ (developed on Node 24)
 - **npm** — 10+ (developed on npm 11)
-- **Supabase project** — a Supabase project with `skills` and `posts` tables (see [Database Schema](#database-schema))
+- **Supabase project** — a Supabase project with `skills`, `creds`, and `posts` tables (see [Database Schema](#database-schema))
 - **n8n workflow** — an n8n chat webhook for the Ziggy AI assistant (see [Environment Variables](#environment-variables))
 
 ## Environment Variables
@@ -134,7 +134,7 @@ portfolio/
     ├── layouts/
     │   └── Layout.astro    # Dark-mode shell + responsive nav + enhanced footer (nav, socials, AI reviews) + global ChatWidget
     └── pages/
-        ├── index.astro     # Home: SSR fetch from Supabase (skills, certifications, achievements feed)
+        ├── index.astro     # Home: SSR fetch from Supabase (skills, creds, achievements feed)
         └── api/
             ├── test.ts              # GET /api/test → {"status":"Node SSR is active"}
             ├── chat.ts              # POST /api/chat → proxy to n8n webhook for Ziggy AI
@@ -171,15 +171,22 @@ curl -X POST http://localhost:4321/api/webhooks/achievement \
 
 ## Database Schema
 
-The Supabase project requires two tables:
+The Supabase project requires three tables:
 
 ### `skills`
 | Column     | Type    | Description                                          |
 | ---------- | ------- | ---------------------------------------------------- |
 | `id`       | int     | Primary key                                          |
 | `name`     | text    | Skill name                                           |
-| `category` | text    | Category (e.g., "Cloud", "Certifications")           |
-| `url`      | text    | Optional URL (for certifications, renders as link)   |
+| `category` | text    | Category (e.g., "Cloud", "Networking")               |
+
+### `creds`
+| Column     | Type    | Description                                          |
+| ---------- | ------- | ---------------------------------------------------- |
+| `id`       | int     | Primary key                                          |
+| `name`     | text    | Certification or learning path name                  |
+| `category` | text    | Category (e.g., "Certifications", "Learning Paths")  |
+| `url`      | text    | Optional URL (renders as external link with icon)    |
 
 ### `posts`
 | Column    | Type    | Description                                  |
@@ -199,6 +206,10 @@ Enable RLS and allow the `anon` role to read and insert:
 ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anon read on skills" ON skills FOR SELECT TO anon USING (true);
 
+-- Creds: allow read
+ALTER TABLE creds ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow anon read on creds" ON creds FOR SELECT TO anon USING (true);
+
 -- Posts: allow read + insert
 ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Allow anon read on posts" ON posts FOR SELECT TO anon USING (true);
@@ -212,7 +223,7 @@ CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHEC
 - [x] ~~Nav avatar with circular border~~ — **Done: `public/avatar.png`**
 - [x] ~~Ziggy AI chat widget with n8n proxy~~ — **Done: floating widget, vanilla JS, API proxy route**
 - [x] ~~Responsive mobile nav + social icons~~ — **Done: hamburger menu, LinkedIn/GitHub icons (christopherjnelson)**
-- [x] ~~Certifications section with URL links~~ — **Done: split from Skills, full-width, external link support**
+- [x] ~~Certifications section with URL links~~ — **Done: moved to dedicated `creds` table, grid layout, external link support**
 - [x] ~~Enhanced footer with AI reviews~~ — **Done: 3-column footer (nav, socials, Gemini/ChatGPT/Grok reviews)**
 - [x] ~~FAQ section removed~~ — **Done: FAQ data moved to Ziggy chatbot**
 - [x] ~~Favicon~~ — **Done: `public/favicon.png` linked in Layout.astro head**

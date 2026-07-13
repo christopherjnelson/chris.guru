@@ -2,9 +2,14 @@
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 
-// Fetch skills from Supabase (including url for certifications)
+// Fetch skills from Supabase
 const { data: skills, error: skillsError } = await supabase
   .from('skills')
+  .select('name, category');
+
+// Fetch certifications & learning paths from Supabase (creds table)
+const { data: creds, error: credsError } = await supabase
+  .from('creds')
   .select('name, category, url');
 
 // Fetch latest 5 achievement posts from Supabase
@@ -15,15 +20,19 @@ const { data: posts, error: postsError } = await supabase
   .order('date', { ascending: false })
   .limit(5);
 
-// Separate certifications from other skills
-const allSkills = skills ?? [];
-const certifications = allSkills.filter((s) => s.category === 'Certifications');
-const otherSkills = allSkills.filter((s) => s.category !== 'Certifications');
-
-// Group remaining skills by category for the grid
-const skillsByCategory = otherSkills.reduce<Record<string, string[]>>(
+// Group skills by category for the grid
+const skillsByCategory = (skills ?? []).reduce<Record<string, string[]>>(
   (acc, skill) => {
     (acc[skill.category] ??= []).push(skill.name);
+    return acc;
+  },
+  {}
+);
+
+// Group credentials by category for the grid
+const credsByCategory = (creds ?? []).reduce<Record<string, { name: string; url: string | null }[]>>(
+  (acc, cred) => {
+    (acc[cred.category] ??= []).push({ name: cred.name, url: cred.url });
     return acc;
   },
   {}
@@ -116,42 +125,49 @@ const formatDate = (iso: string) =>
 
   <hr class="my-10 border-slate-800" />
 
-  <!-- Certifications -->
+  <!-- Certifications & Learning Paths -->
   <section id="certifications" class="scroll-mt-20">
     <h2 class="text-2xl font-semibold tracking-tight text-slate-50">Certifications</h2>
     {
-      skillsError ? (
+      credsError ? (
         <p class="mt-4 text-sm text-rose-400">
           Unable to load certifications at this time.
         </p>
-      ) : certifications.length === 0 ? (
+      ) : Object.keys(credsByCategory).length === 0 ? (
         <p class="mt-4 text-sm text-slate-400">No certifications listed yet.</p>
       ) : (
-        <div class="mt-6 rounded-lg border border-slate-800 bg-slate-900/40 p-5">
-          <ul class="flex flex-wrap gap-2">
-            {certifications.map((cert) => (
-              <li>
-                {cert.url ? (
-                  <a
-                    href={cert.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    class="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-3 py-1 text-sm text-sky-400 transition-colors hover:bg-slate-700 hover:text-sky-300"
-                  >
-                    {cert.name}
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M7 17L17 7" />
-                      <path d="M7 7h10v10" />
-                    </svg>
-                  </a>
-                ) : (
-                  <span class="rounded-md bg-slate-800 px-3 py-1 text-sm text-slate-200">
-                    {cert.name}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
+        <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+          {Object.entries(credsByCategory).map(([category, items]) => (
+            <div class="rounded-lg border border-slate-800 bg-slate-900/40 p-5">
+              <h3 class="text-sm font-semibold uppercase tracking-wider text-sky-400">
+                {category}
+              </h3>
+              <ul class="mt-3 flex flex-wrap gap-2">
+                {items.map((item) => (
+                  <li>
+                    {item.url ? (
+                      <a
+                        href={item.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inline-flex items-center gap-1.5 rounded-md bg-slate-800 px-3 py-1 text-sm text-sky-400 transition-colors hover:bg-slate-700 hover:text-sky-300"
+                      >
+                        {item.name}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M7 17L17 7" />
+                          <path d="M7 7h10v10" />
+                        </svg>
+                      </a>
+                    ) : (
+                      <span class="rounded-md bg-slate-800 px-3 py-1 text-sm text-slate-200">
+                        {item.name}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))}
         </div>
       )
     }
