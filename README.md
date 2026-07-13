@@ -1,268 +1,159 @@
-# Autonomous Portfolio CMS
+﻿# Autonomous Portfolio CMS
 
-A lightweight, server-side rendered portfolio website built with **Astro** and configured to run as a standalone Node.js server, designed for deployment behind an Nginx reverse proxy. Data is powered by a headless **Supabase** backend, with a secure webhook endpoint for n8n to post new achievements and an AI chat widget ("Ziggy") powered by an n8n webhook.
+A self-hosted, AI-enhanced portfolio system for Chris Nelson — an IT operations and systems administrator. The system uses Notion as the source of truth for personal and professional information, n8n workflows to transform and synchronize data, Supabase for relational storage, and an Astro SSR portfolio website with an AI chat assistant ("Ziggy").
 
-## Tech Stack
+## Architecture
 
-| Layer        | Technology                                      |
-| ------------ | ----------------------------------------------- |
-| Framework    | [Astro](https://astro.build) 5 (SSR, `output: 'server'`) |
-| Adapter      | [`@astrojs/node`](https://docs.astro.build/en/guides/integrations-guide/node/) — `mode: 'standalone'` |
-| Styling      | [Tailwind CSS](https://tailwindcss.com) v4 (via `@tailwindcss/vite`) |
-| Database     | [Supabase](https://supabase.com) (PostgreSQL) — headless data layer |
-| AI Chat      | n8n webhook (proxied via Astro API route)       |
-| Markdown     | [marked](https://marked.js.org) — markdown-to-HTML parsing for chat |
-| Language     | TypeScript (strict)                             |
-| Runtime      | Node.js 18.20.8+ / 20.3+ / 22+                  |
+```mermaid
+flowchart LR
+    Notion[Notion Wiki<br/>Source of Truth]
+    Resume[Resume / Documents]
+    N8N[n8n Workflows]
+    Supabase[(Supabase<br/>Rows + Vectors)]
+    CMS[Astro Portfolio CMS]
+    Ziggy[Ziggy AI Assistant]
+    Visitor[Portfolio Visitor]
 
-## Features
-
-- **Dark-mode-preferred UI** — clean, minimal slate/sky theme with a sticky top navigation bar featuring a cartoon avatar, social icons (LinkedIn, GitHub), and a responsive hamburger menu for mobile.
-- **About section** — expanded two-paragraph bio covering Chris's decade of IT operations experience, hands-on technologies, and real-world achievements, with an inline link to [wiki.chris.guru](https://wiki.chris.guru).
-- **Skills grid** — skills fetched from Supabase, grouped by category. Includes a link button to [wiki.chris.guru](https://wiki.chris.guru) for in-depth skill documentation.
-- **Certifications section** — certifications and learning paths fetched from a dedicated `creds` table in Supabase, grouped by category in a grid layout (matching the Skills section). If a `url` is provided, the cred renders as a clickable external link with an icon.
-- **Achievements feed** — latest 5 achievement posts fetched from Supabase, ordered by date descending, rendered as a timeline.
-- **Projects stub** — placeholder section for future project highlights.
-- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses parse markdown via `marked` (bold, italic, lists, code, links, headings, blockquotes) with DOM-based sanitization for XSS safety; user input is escaped via `textContent`. Paragraph and `<br>` spacing tuned for readable multi-paragraph responses.
-- **Enhanced footer** — 3-column layout with navigation links, social links (LinkedIn, GitHub), and humorous "AI Reviews" from Gemini, ChatGPT, and Grok with stylized logos.
-- **JSON health endpoint** — `GET /api/test` returns `{"status":"Node SSR is active"}` to verify server endpoints.
-- **n8n webhook endpoint** — `POST /api/webhooks/achievement` accepts authorized POST requests to insert new achievements into Supabase.
-
-## Prerequisites
-
-- **Node.js** — 18.20.8, 20.3+, or 22+ (developed on Node 24)
-- **npm** — 10+ (developed on npm 11)
-- **Supabase project** — a Supabase project with `skills`, `creds`, and `posts` tables (see [Database Schema](#database-schema))
-- **n8n workflow** — an n8n chat webhook for the Ziggy AI assistant (see [Environment Variables](#environment-variables))
-
-## Environment Variables
-
-Create a `.env` file in the project root (do not commit it — it's in `.gitignore`):
-
-```env
-PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
-PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
-WEBHOOK_SECRET="your-secret-key-for-n8n"
-N8N_CHAT_WEBHOOK="https://your-n8n-instance/webhook/your-chat-webhook-id"
+    Notion --> N8N
+    Resume --> N8N
+    N8N --> Supabase
+    Supabase --> CMS
+    Supabase --> Ziggy
+    Visitor --> CMS
+    Visitor --> Ziggy
+    Ziggy --> N8N
 ```
 
-| Variable                      | Description                                      |
-| ----------------------------- | ------------------------------------------------ |
-| `PUBLIC_SUPABASE_URL`         | Supabase project URL (public, safe for client)  |
-| `PUBLIC_SUPABASE_ANON_KEY`    | Supabase anon key (public, used for SSR reads)  |
-| `WEBHOOK_SECRET`              | Shared secret for n8n webhook authorization      |
-| `N8N_CHAT_WEBHOOK`            | n8n webhook URL for Ziggy AI chat proxy (server-side only) |
+## Repository Structure
 
-## Getting Started
+```text
+autonomous-portfolio-cms/
+├── .github/
+│   └── workflows/
+│       └── deploy.yml          # GitHub Action: deploy to DigitalOcean (pending migration)
+├── CMS/                        # Astro SSR portfolio website
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   ├── astro.config.mjs
+│   ├── tsconfig.json
+│   └── README.md               # CMS-specific documentation
+├── WORKFLOWS/                  # Sanitized n8n workflow exports
+│   ├── skills/
+│   ├── certifications/
+│   ├── achievements/
+│   ├── projects/
+│   ├── ziggy/
+│   ├── shared/
+│   └── README.md               # Workflow documentation & conventions
+├── docs/
+│   └── deployment.md           # Deployment documentation (current & planned)
+├── .gitignore
+└── README.md                   # This file
+```
+
+## Components
+
+### `CMS/`
+
+The Astro SSR portfolio website. Serves the public-facing portfolio with About, Skills, Certifications, Achievements Feed, and Projects sections. Includes the Ziggy AI chat widget. See [`CMS/README.md`](CMS/README.md) for full documentation.
+
+### `WORKFLOWS/`
+
+Sanitized exports of n8n workflows that synchronize data from Notion to Supabase and power portfolio automation. See [`WORKFLOWS/README.md`](WORKFLOWS/README.md) for workflow conventions and safety guidelines.
+
+### `docs/`
+
+Deployment and operational documentation. See [`docs/deployment.md`](docs/deployment.md) for current and planned deployment models.
+
+### `.github/workflows/`
+
+GitHub Actions CI/CD configuration. The deployment workflow is currently in transition — see [Deployment Status](#current-status-and-roadmap) below.
+
+## Local CMS Development
 
 ```bash
-# install dependencies
-npm install
-
-# start the dev server (http://localhost:4321)
+cd CMS
+npm ci
 npm run dev
-
-# build for production
-npm run build
-
-# preview the production build locally
-npm run preview
 ```
 
-## Production & Nginx Deployment
+The dev server starts at `http://localhost:4321`.
 
-This project is configured with `output: 'server'` and the `@astrojs/node` adapter in `standalone` mode. After building, a self-contained Node server is emitted:
-
-```
-dist/
-└── server/
-    └── entry.mjs
-```
-
-Run the production server:
+## Production Build
 
 ```bash
+cd CMS
+npm ci
+npm run build
 node ./dist/server/entry.mjs
 ```
 
-By default it listens on `0.0.0.0:4321`. Override with environment variables:
+Override the default host and port:
 
 ```bash
 HOST=127.0.0.1 PORT=3000 node ./dist/server/entry.mjs
 ```
 
-### Example Nginx Reverse Proxy
+## Environment Variables
 
-```nginx
-server {
-    listen 80;
-    server_name portfolio.example.com;
+The CMS requires environment variables in `CMS/.env` (not committed). See [`CMS/README.md`](CMS/README.md) for the full list:
 
-    location / {
-        proxy_pass         http://127.0.0.1:3000;
-        proxy_http_version 1.1;
-        proxy_set_header   Host              $host;
-        proxy_set_header   X-Real-IP         $remote_addr;
-        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
-        proxy_set_header   X-Forwarded-Proto $scheme;
-        proxy_set_header   Upgrade           $http_upgrade;
-        proxy_set_header   Connection        "upgrade";
-    }
-}
-```
+| Variable                      | Scope       | Description                                      |
+| ----------------------------- | ----------- | ------------------------------------------------ |
+| `PUBLIC_SUPABASE_URL`         | CMS         | Supabase project URL                             |
+| `PUBLIC_SUPABASE_ANON_KEY`    | CMS         | Supabase anon key                                |
+| `WEBHOOK_SECRET`              | CMS         | Shared secret for n8n webhook authorization      |
+| `N8N_CHAT_WEBHOOK`            | CMS         | n8n webhook URL for Ziggy AI chat proxy          |
 
-## CI/CD Deployment
-
-This project includes a GitHub Actions workflow (`.github/workflows/deploy.yml`) that automatically deploys to a DigitalOcean droplet on every push to the `main` branch.
-
-### How it works
-
-1. A push to `main` triggers the workflow
-2. The workflow uses [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) to SSH into the droplet
-3. It executes `sudo /home/chris/deploy.sh` on the droplet, which pulls the latest code, installs dependencies, builds, and restarts the Node server
-
-### Required GitHub Repository Secrets
+GitHub Actions deployment secrets are configured in the repository settings, not in `.env`:
 
 | Secret             | Description                                      |
 | ------------------ | ------------------------------------------------ |
-| `DROPLET_IP`       | IP address of the DigitalOcean droplet           |
-| `DROPLET_USER`     | SSH username (e.g., `chris`)                     |
+| `DROPLET_IP`       | DigitalOcean droplet IP address                  |
+| `DROPLET_USER`     | SSH username                                     |
 | `SSH_PRIVATE_KEY`  | Private SSH key authorized on the droplet        |
 
-### Manual deployment
+## Security Notes
 
-If needed, you can still deploy manually by SSHing into the droplet and running:
+- `.env` files are gitignored and must never be committed
+- n8n credential exports are gitignored — see [`WORKFLOWS/README.md`](WORKFLOWS/README.md)
+- Supabase RLS policies restrict access to the `anon` role
+- The Ziggy chat widget sanitizes all bot responses with DOM-based XSS filtering
+- User input in the chat widget is escaped via `textContent`
 
-```bash
-sudo /home/chris/deploy.sh
-```
+## Documentation
 
-## Project Structure
+- [`CMS/README.md`](CMS/README.md) — Full CMS documentation (features, API, database schema)
+- [`WORKFLOWS/README.md`](WORKFLOWS/README.md) — n8n workflow conventions and safety
+- [`docs/deployment.md`](docs/deployment.md) — Deployment model (current and planned)
 
-```
-portfolio/
-├── .github/
-│   └── workflows/
-│       └── deploy.yml     # GitHub Action: deploy to DigitalOcean on push to main
-├── astro.config.mjs        # Astro config: server output + Node standalone adapter + Tailwind
-├── tsconfig.json           # TypeScript strict config (extends astro/tsconfigs/strict)
-├── package.json
-├── .env                    # Environment variables (not committed)
-├── .gitignore
-├── public/
-│   ├── avatar.png          # Cartoon avatar for nav bar (1024x1024)
-│   └── favicon.png         # Favicon for browser tabs (1024x1024)
-└── src/
-    ├── styles/
-    │   └── global.css      # Tailwind v4 import + dark mode variant
-    ├── lib/
-    │   ├── supabase.ts     # Supabase client initialization
-    │   └── mockData.ts     # Legacy mock data (no longer imported)
-    ├── components/
-    │   └── ChatWidget.astro # Floating "Ziggy" AI chat widget (vanilla JS)
-    ├── layouts/
-    │   └── Layout.astro    # Dark-mode shell + responsive nav + enhanced footer (nav, socials, AI reviews) + global ChatWidget
-    └── pages/
-        ├── index.astro     # Home: SSR fetch from Supabase (skills, creds, achievements feed)
-        └── api/
-            ├── test.ts              # GET /api/test → {"status":"Node SSR is active"}
-            ├── chat.ts              # POST /api/chat → proxy to n8n webhook for Ziggy AI
-            └── webhooks/
-                └── achievement.ts   # POST /api/webhooks/achievement → insert to Supabase
-```
+## Current Status and Roadmap
 
-## API Endpoints
+### Completed
 
-| Method | Route                          | Auth                          | Response                          | Description                                      |
-| ------ | ------------------------------ | ----------------------------- | --------------------------------- | ------------------------------------------------ |
-| `GET`  | `/api/test`                    | None                          | `{"status":"Node SSR is active"}` | Health check / SSR verification                  |
-| `POST` | `/api/chat`                    | None                          | `{"reply":"..."}`                 | Proxy user message to n8n webhook for Ziggy AI   |
-| `POST` | `/api/webhooks/achievement`    | `Authorization` header        | `{"success":true}`                | Insert a new achievement into Supabase (for n8n) |
+- [x] Astro SSR portfolio with Supabase integration
+- [x] Skills, Certifications, and Achievements sections
+- [x] Ziggy AI chat widget with markdown rendering
+- [x] n8n webhook endpoint for achievement posts
+- [x] Dark-mode UI with responsive navigation
+- [x] Favicon and avatar
+- [x] Wiki links (wiki.chris.guru)
+- [x] GitHub Actions deployment to DigitalOcean (initial)
+- [x] Repository restructured into CMS + WORKFLOWS + docs
 
-### Chat API Usage
+### In Progress
 
-```bash
-curl -X POST http://localhost:4321/api/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message":"What does Chris do?"}'
-```
+- [ ] **Deployment migration** — The GitHub Action (`.github/workflows/deploy.yml`) still references the old deployment process (`/home/chris/deploy.sh`). This is being migrated to a dedicated `deploy` user with restricted permissions. The YAML has intentionally not been updated yet.
+- [ ] **Deploy user migration** — A dedicated non-human `deploy` user is planned but not yet created. See [`docs/deployment.md`](docs/deployment.md) for the migration plan.
 
-The proxy sends `{"chatInput": "What does Chris do?"}` to the n8n webhook and returns `{"reply": "Ziggy's response"}`.
+### Planned
 
-### Webhook Usage
-
-```bash
-curl -X POST http://localhost:4321/api/webhooks/achievement \
-  -H "Content-Type: application/json" \
-  -H "Authorization: your-webhook-secret" \
-  -d '{"title":"New Certification","content":"Chris earned a new certification today."}'
-```
-
-## Database Schema
-
-The Supabase project requires three tables:
-
-### `skills`
-| Column     | Type    | Description                                          |
-| ---------- | ------- | ---------------------------------------------------- |
-| `id`       | int     | Primary key                                          |
-| `name`     | text    | Skill name                                           |
-| `category` | text    | Category (e.g., "Cloud", "Networking")               |
-
-### `creds`
-| Column     | Type    | Description                                          |
-| ---------- | ------- | ---------------------------------------------------- |
-| `id`       | int     | Primary key                                          |
-| `name`     | text    | Certification or learning path name                  |
-| `category` | text    | Category (e.g., "Certifications", "Learning Paths")  |
-| `url`      | text    | Optional URL (renders as external link with icon)    |
-
-### `posts`
-| Column    | Type    | Description                                  |
-| --------- | ------- | -------------------------------------------- |
-| `id`      | int     | Primary key                                  |
-| `title`   | text    | Achievement title                            |
-| `content` | text    | Achievement description (3rd person)         |
-| `date`    | date    | Date of achievement (defaults to now)        |
-| `type`    | text    | Post type (e.g., `'achievement'`)            |
-
-### Row-Level Security (RLS)
-
-Enable RLS and allow the `anon` role to read and insert:
-
-```sql
--- Skills: allow read
-ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow anon read on skills" ON skills FOR SELECT TO anon USING (true);
-
--- Creds: allow read
-ALTER TABLE creds ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow anon read on creds" ON creds FOR SELECT TO anon USING (true);
-
--- Posts: allow read + insert
-ALTER TABLE posts ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Allow anon read on posts" ON posts FOR SELECT TO anon USING (true);
-CREATE POLICY "Allow anon insert on posts" ON posts FOR INSERT TO anon WITH CHECK (true);
-```
-
-## Roadmap
-
-- [x] ~~Replace mock data with a real data layer (database/API)~~ — **Done: Supabase integration**
-- [x] ~~Secure webhook endpoint for n8n achievement posts~~ — **Done**
-- [x] ~~Nav avatar with circular border~~ — **Done: `public/avatar.png`**
-- [x] ~~Ziggy AI chat widget with n8n proxy~~ — **Done: floating widget, vanilla JS, API proxy route**
-- [x] ~~Responsive mobile nav + social icons~~ — **Done: hamburger menu, LinkedIn/GitHub icons (christopherjnelson)**
-- [x] ~~Certifications section with URL links~~ — **Done: moved to dedicated `creds` table, grid layout, external link support**
-- [x] ~~Enhanced footer with AI reviews~~ — **Done: 3-column footer (nav, socials, Gemini/ChatGPT/Grok reviews)**
-- [x] ~~FAQ section removed~~ — **Done: FAQ data moved to Ziggy chatbot**
-- [x] ~~Favicon~~ — **Done: `public/favicon.png` linked in Layout.astro head**
-- [x] ~~Markdown formatting for Ziggy chat~~ — **Done: `marked` library with DOM-based sanitization**
-- [x] ~~Wiki links~~ — **Done: inline link in About + button in Skills section pointing to wiki.chris.guru**
-- [ ] **Feed pagination / progressive disclosure** — Implement "Load More" pattern for the achievements feed (fetch 20 from Supabase, show 5, reveal next 5 on click). Prevents the page from growing infinitely tall as backdated/backfilled items accumulate.
-- [ ] Add authentication & admin middleware for content management
+- [ ] Export and commit sanitized n8n workflows
+- [ ] Feed pagination / progressive disclosure
+- [ ] Authentication & admin middleware for content management
 - [ ] Build out the Projects section with detail pages
-- [ ] Add RSS/Atom feed for achievements
-- [x] ~~CI/CD pipeline for automated deployment~~ — **Done: GitHub Action deploys to DigitalOcean droplet via SSH on push to main**
+- [ ] RSS/Atom feed for achievements
 
 ## License
 

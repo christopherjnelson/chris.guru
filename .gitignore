@@ -1,13 +1,27 @@
 # leftover from OneDrive-disrupted git init
 .git_disabled/
 
-# build output
+# build output (root and CMS)
 dist/
-# generated types
-.astro/
+CMS/dist/
 
-# dependencies
+# generated types (root and CMS)
+.astro/
+CMS/.astro/
+
+# dependencies (root and CMS)
 node_modules/
+CMS/node_modules/
+
+# environment variables (root and CMS)
+.env
+.env.production
+.env.*
+!CMS/.env.example
+
+CMS/.env
+CMS/.env.production
+CMS/.env.*
 
 # logs
 npm-debug.log*
@@ -15,12 +29,14 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# environment variables
-.env
-.env.production
-
 # macOS-generated files
 .DS_Store
 
 # jetbrains setting folder
 .idea/
+
+# n8n credentials and secrets — never commit
+WORKFLOWS/credentials/
+WORKFLOWS/**/*.credentials.json
+WORKFLOWS/**/*.secrets.json
+WORKFLOWS/**/.env

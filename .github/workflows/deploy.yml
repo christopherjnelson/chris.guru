@@ -4,16 +4,25 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "CMS/**"
+      - ".github/workflows/deploy.yml"
+
+concurrency:
+  group: portfolio-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Execute Deployment Script via SSH
+      - name: Execute deployment script via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script_stop: true
           script: |
-            sudo /home/chris/deploy.sh
+            /home/deploy/deploy-cms.sh
