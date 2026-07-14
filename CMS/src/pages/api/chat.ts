@@ -2,7 +2,7 @@ import type { APIRoute } from 'astro';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
-    const { message } = await request.json();
+    const { message, sessionId } = await request.json();
 
     if (!message) {
       return new Response(
@@ -16,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
     const res = await fetch(webhookUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatInput: message }),
+      body: JSON.stringify({ chatInput: message, sessionId }),
     });
 
     if (!res.ok) {

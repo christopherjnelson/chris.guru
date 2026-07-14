@@ -88,6 +88,9 @@
   const messages = document.getElementById('chat-messages');
   const sendBtn = document.getElementById('chat-send') as HTMLButtonElement | null;
 
+  // Generate a unique session ID for this chat session
+  const sessionId = crypto.randomUUID();
+
   // Toggle chat window
   fab?.addEventListener('click', () => {
     chatWindow?.classList.toggle('hidden');
@@ -214,7 +217,7 @@
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message }),
+        body: JSON.stringify({ message, sessionId }),
       });
 
       const data = await res.json();
