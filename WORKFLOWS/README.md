@@ -1,75 +1,66 @@
 # n8n Workflows
 
-This directory contains sanitized exports of the n8n workflows that power the Autonomous Portfolio system — synchronizing data from Notion (source of truth) to Supabase, publishing achievements, and driving the Ziggy AI assistant.
+This directory contains exports and documentation for the n8n workflows that power the Autonomous Portfolio. The checked-in workflows publish credential and GitHub activity to Supabase and provide the Ziggy portfolio assistant.
 
-## ⚠️ Security Warning
+## Security Warning
 
-**Never export or commit n8n credentials, API keys, SSH keys, or personally sensitive data.**
+Never export or commit n8n credentials, API keys, SSH keys, webhook secrets, or personally sensitive data.
 
-Before committing any workflow JSON:
+Before committing a workflow export:
 
-1. Remove or replace all credential references
-2. Remove or replace webhook URLs containing instance-specific paths
-3. Remove or replace Supabase keys, Notion tokens, and any API secrets
-4. Remove workflow IDs if they reveal instance infrastructure
-5. Verify no `credentials` property contains real credential data
+1. Remove or replace credential values and sensitive credential references.
+2. Remove or replace instance-specific webhook URLs and paths.
+3. Remove Supabase keys, Notion tokens, and other API secrets.
+4. Remove workflow and instance identifiers when they reveal infrastructure details.
+5. Review the final diff before committing it.
 
 ## Directory Structure
 
 ```text
 WORKFLOWS/
-├── skills/           # Workflows syncing skills from Notion to Supabase
-├── certifications/   # Workflows syncing certifications & learning paths
-├── achievements/     # Workflows publishing achievement posts
-├── projects/         # Workflows managing project highlights
-├── ziggy/            # Workflows powering the Ziggy AI chat assistant
-└── shared/           # Shared sub-workflows, utility logic, and helpers
+|-- README.md
+|-- feed_updates/
+|   |-- credentials_update/
+|   |   |-- README.md
+|   |   `-- workflow.json
+|   `-- github_update/
+|       |-- README.md
+|       `-- workflow.json
+`-- ziggy_portfolio_agent/
+    |-- README.md
+    `-- workflow.json
 ```
 
-## Naming Convention
+Each workflow lives in a descriptive directory containing:
 
-Workflow files should follow this format:
-
-```text
-NN-purpose-description.workflow.json
-```
-
-Where `NN` is a two-digit ordering number.
-
-### Examples
-
-```text
-01-sync-skills-from-notion.workflow.json
-02-sync-certifications-from-resume.workflow.json
-03-publish-achievement.workflow.json
-04-ziggy-chat-webhook.workflow.json
-```
+- `workflow.json`: the n8n workflow export.
+- `README.md`: its behavior, dependencies, credentials, and import instructions.
 
 ## Workflow Inventory
 
-| # | File | Purpose | Status |
-|---|------|---------|--------|
-| 01 | _pending_ | Sync skills from Notion to Supabase | _Not yet exported_ |
-| 02 | _pending_ | Sync certifications & learning paths | _Not yet exported_ |
-| 03 | _pending_ | Publish achievement to Supabase | _Not yet exported_ |
-| 04 | _pending_ | Ziggy AI chat webhook | _Not yet exported_ |
+| Workflow | Export | Documentation | Purpose |
+|---|---|---|---|
+| Credentials Update | [`workflow.json`](./feed_updates/credentials_update/workflow.json) | [Setup guide](./feed_updates/credentials_update/README.md) | Polls Credly and Microsoft Learn, deduplicates credentials, formats new achievements, and publishes them to Supabase. |
+| GitHub Update | [`workflow.json`](./feed_updates/github_update/workflow.json) | [Setup guide](./feed_updates/github_update/README.md) | Receives GitHub push events, summarizes changes, and publishes feed entries to Supabase. |
+| Ziggy Portfolio Agent | [`workflow.json`](./ziggy_portfolio_agent/workflow.json) | [Setup guide](./ziggy_portfolio_agent/README.md) | Serves the portfolio chat webhook and answers questions using the Supabase vector knowledge base. |
 
 ## Safe Export Process
 
-1. Open the workflow in n8n
-2. Click the menu (three dots) → **Export**
-3. Save the JSON file to the appropriate subdirectory
-4. Open the file in a text editor
-5. Search for and remove/replace:
-   - `"credentials"` blocks — replace with `"credentials": {}`
-   - Webhook URLs containing your n8n instance domain
-   - Any hardcoded API keys, tokens, or secrets
-   - Workflow IDs (optional but recommended)
-6. Verify the file is safe: `grep -ri "key|token|secret|password|credential" *.json`
-7. Commit the sanitized file
+1. Export the workflow JSON from n8n.
+2. Save it as `workflow.json` in the appropriate workflow directory.
+3. Remove or replace credentials, secrets, instance URLs, webhook paths, and sensitive identifiers.
+4. Search the export for sensitive terms, for example:
+
+   ```text
+   rg -ni "api.?key|token|secret|password|credential|webhook" workflow.json
+   ```
+
+5. Confirm every match is a safe node type, placeholder, or credential reference without a secret value.
+6. Update the workflow's local `README.md` when its nodes, models, dependencies, or setup steps change.
+7. Review and commit the sanitized export and documentation together.
 
 ## Notes
 
-- Workflow JSON files are intentionally version-controlled (unlike credentials)
-- The `credentials/` directory is gitignored and should never be used
-- If a workflow references a credential by name, document the credential type but not its value
+- Workflow JSON exports are intentionally version-controlled; secret values are not.
+- Credential types and required services may be documented, but credential values must never be committed.
+- The portfolio's knowledge content is stored in Supabase. No Notion synchronization workflow is currently included in this directory.
