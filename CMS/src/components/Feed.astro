@@ -54,6 +54,12 @@ const showLoadMore = posts.length > PAGE_SIZE;
     const items = feedList.querySelectorAll<HTMLElement>('.feed-item');
     let visibleCount = PAGE_SIZE;
 
+    // Hide button on load if there are no hidden items to reveal
+    const hiddenItems = Array.from(items).filter((item) => item.classList.contains('hidden'));
+    if (hiddenItems.length === 0) {
+      loadMoreBtn.classList.add('hidden');
+    }
+
     loadMoreBtn.addEventListener('click', () => {
       const nextBatch = PAGE_SIZE;
       let revealed = 0;
