@@ -13,11 +13,24 @@ export const POST: APIRoute = async ({ request }) => {
 
     const webhookUrl = import.meta.env.N8N_CHAT_WEBHOOK;
 
-    const res = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatInput: message, sessionId }),
-    });
+    if (!webhookUrl) {
+      throw new Error('N8N_CHAT_WEBHOOK is not configured');
+    }
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30_000);
+
+    let res: Response;
+    try {
+      res = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chatInput: message, sessionId }),
+        signal: controller.signal,
+      });
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!res.ok) {
       throw new Error(`n8n responded with ${res.status}`);

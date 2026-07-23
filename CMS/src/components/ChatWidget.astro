@@ -6,7 +6,8 @@
 <button
   id="chat-fab"
   aria-label="Open chat"
-  class="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-sky-500 text-white shadow-lg shadow-sky-500/30 transition-all hover:bg-sky-400 hover:scale-105 active:scale-95"
+  title="Ziggy is offline"
+  class="fixed bottom-6 right-6 z-50 flex h-14 w-14 items-center justify-center rounded-full bg-slate-600 text-white shadow-lg shadow-black/30 transition-all hover:bg-slate-500 hover:scale-105 active:scale-95"
 >
   <svg id="chat-icon-open" xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
     <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
@@ -28,11 +29,11 @@
       <div class="flex h-9 w-9 items-center justify-center rounded-full bg-sky-500/20 text-sm font-bold text-sky-400">
         Z
       </div>
-      <span id="chat-status-dot" class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-emerald-400"></span>
+      <span id="chat-status-dot" class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-slate-900 bg-rose-400"></span>
     </div>
     <div>
       <p class="text-sm font-semibold text-slate-100">Ziggy</p>
-      <p id="chat-status-text" class="text-xs text-emerald-400">Online</p>
+      <p id="chat-status-text" class="text-xs text-rose-400" aria-live="polite">Offline</p>
     </div>
   </div>
 
@@ -51,14 +52,16 @@
       <input
         id="chat-input"
         type="text"
-        placeholder="Type your message..."
+        placeholder="Chat is currently unavailable"
         autocomplete="off"
+        disabled
         class="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
       />
       <button
         type="submit"
         id="chat-send"
         aria-label="Send message"
+        disabled
         class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-sky-500 text-white transition-colors hover:bg-sky-400 disabled:opacity-50"
       >
         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -94,28 +97,57 @@
   // Check chatbot availability on page load
   const statusDot = document.getElementById('chat-status-dot');
   const statusText = document.getElementById('chat-status-text');
+  let isOnline = false;
+  let isSending = false;
+  let healthCheckInFlight: Promise<void> | null = null;
+
+  function setAvailability(online: boolean) {
+    isOnline = online;
+
+    statusDot?.classList.toggle('bg-emerald-400', online);
+    statusDot?.classList.toggle('bg-rose-400', !online);
+    statusText?.classList.toggle('text-emerald-400', online);
+    statusText?.classList.toggle('text-rose-400', !online);
+
+    if (statusText) statusText.textContent = online ? 'Online' : 'Offline';
+    if (input) {
+      input.disabled = !online || isSending;
+      input.placeholder = online ? 'Type your message...' : 'Chat is currently unavailable';
+    }
+    if (sendBtn) sendBtn.disabled = !online || isSending;
+
+    fab?.classList.toggle('bg-sky-500', online);
+    fab?.classList.toggle('hover:bg-sky-400', online);
+    fab?.classList.toggle('shadow-sky-500/30', online);
+    fab?.classList.toggle('bg-slate-600', !online);
+    fab?.classList.toggle('hover:bg-slate-500', !online);
+    fab?.classList.toggle('shadow-black/30', !online);
+    fab?.setAttribute('title', `Ziggy is ${online ? 'online' : 'offline'}`);
+  }
 
   async function checkHealth() {
-    try {
-      const res = await fetch('/api/health');
-      const data = await res.json();
+    if (healthCheckInFlight) return healthCheckInFlight;
 
-      if (data.status === 'offline') {
-        statusDot?.classList.remove('bg-emerald-400');
-        statusDot?.classList.add('bg-rose-400');
-        statusText?.classList.remove('text-emerald-400');
-        statusText?.classList.add('text-rose-400');
-        if (statusText) statusText.textContent = 'Offline';
-        if (input) input.disabled = true;
-        if (sendBtn) sendBtn.disabled = true;
-        if (input) input.placeholder = 'Chat is currently unavailable';
+    healthCheckInFlight = (async () => {
+      try {
+        const res = await fetch('/api/health', { cache: 'no-store' });
+        const data = await res.json();
+        setAvailability(res.ok && data.status === 'online');
+      } catch {
+        setAvailability(false);
+      } finally {
+        healthCheckInFlight = null;
       }
-    } catch {
-      // If health check fails, leave as "Online" (optimistic)
-    }
+    })();
+
+    return healthCheckInFlight;
   }
 
   checkHealth();
+  window.setInterval(checkHealth, 60_000);
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) checkHealth();
+  });
 
   // Toggle chat window
   fab?.addEventListener('click', () => {
@@ -123,6 +155,7 @@
     chatWindow?.classList.toggle('flex');
     iconOpen?.classList.toggle('hidden');
     iconClose?.classList.toggle('hidden');
+    if (!isOnline) checkHealth();
     input?.focus();
   });
 
@@ -233,6 +266,7 @@
 
     // Clear input and disable send
     input.value = '';
+    isSending = true;
     sendBtn.disabled = true;
     input.disabled = true;
 
@@ -248,21 +282,27 @@
 
       const data = await res.json();
 
+      if (!res.ok) {
+        throw new Error(data.reply || `Chat request failed with ${res.status}`);
+      }
+
       // Remove typing indicator
       typing?.remove();
 
       // Append Ziggy's reply
       appendMessage(data.reply || 'Hmm, I did not quite catch that.', 'bot');
+      setAvailability(true);
     } catch (err) {
       // Remove typing indicator
       typing?.remove();
 
       // Show error message
       appendMessage('Sorry, something went wrong. Please try again.', 'bot');
+      setAvailability(false);
     } finally {
-      sendBtn.disabled = false;
-      input.disabled = false;
-      input.focus();
+      isSending = false;
+      setAvailability(isOnline);
+      if (isOnline) input.focus();
     }
   });
 </script>

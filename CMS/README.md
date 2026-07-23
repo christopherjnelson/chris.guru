@@ -189,7 +189,7 @@ CMS/
 | Method | Route                          | Auth                          | Response                          | Description                                      |
 | ------ | ------------------------------ | ----------------------------- | --------------------------------- | ------------------------------------------------ |
 | `GET`  | `/api/test`                    | None                          | `{"status":"Node SSR is active"}` | Health check / SSR verification                  |
-| `GET`  | `/api/health`                   | None                          | `{"status":"online"|"offline"}`   | Check if n8n chat webhook is reachable           |
+| `GET`  | `/api/health`                   | None                          | `{"status":"online"|"offline"}`   | Send a lightweight heartbeat to the n8n chat webhook |
 | `POST` | `/api/chat`                    | None                          | `{"reply":"..."}`                 | Proxy user message to n8n webhook for Ziggy AI   |
 | `POST` | `/api/webhooks/achievement`    | `Authorization` header        | `{"success":true}`                | Insert a new achievement into Supabase (for n8n) |
 
@@ -202,6 +202,10 @@ curl -X POST http://localhost:4321/api/chat \
 ```
 
 The proxy sends `{"chatInput": "What does Chris do?"}` to the n8n webhook and returns `{"reply": "Ziggy's response"}`.
+
+The chat widget starts offline and enables input only after `/api/health` receives
+the expected `{"status":"online"}` heartbeat response from n8n. It checks again
+periodically, when the tab becomes visible, and when an offline widget is opened.
 
 ### Webhook Usage
 

@@ -69,6 +69,55 @@
     },
     {
       "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ad3cd4d7-e815-46b3-a8ff-564058b8471e",
+              "leftValue": "={{ $json.body.heartbeat }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -16,
+        -80
+      ],
+      "id": "5875bd31-7784-46e7-8389-78f46232d241",
+      "name": "Is Heartbeat"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"online\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        176,
+        -176
+      ],
+      "id": "9b6c7aa3-dd74-4512-a948-54815ecc234c",
+      "name": "Respond to Heartbeat"
+    },
+    {
+      "parameters": {
         "sessionIdType": "customKey",
         "sessionKey": "={{ $json.body.sessionId }}",
         "contextWindowLength": 10
@@ -142,6 +191,24 @@
     },
     "WebhookFromPortfolio": {
       "main": [
+        [
+          {
+            "node": "Is Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Heartbeat": {
+      "main": [
+        [
+          {
+            "node": "Respond to Heartbeat",
+            "type": "main",
+            "index": 0
+          }
+        ],
         [
           {
             "node": "ZiggyAgent",

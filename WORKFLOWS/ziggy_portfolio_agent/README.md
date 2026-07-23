@@ -31,7 +31,7 @@ The architecture exposes a POST webhook interface that connects Christopher's fr
 
 ## How It Works
 
-1. **Webhook Interface (`WebhookFromPortfolio`)**: Listens for incoming `POST` requests from the Portfolio Frontend CMS. The request body requires a `chatInput` string and a `sessionId` string.
+1. **Webhook Interface (`WebhookFromPortfolio`)**: Listens for incoming `POST` requests from the Portfolio Frontend CMS. Chat requests require a `chatInput` string and a `sessionId` string. Lightweight `{"heartbeat":true}` requests bypass the AI agent and return `{"status":"online"}`.
 2. **LangChain Agent Core (`ZiggyAgent`)**: Configured as an adaptive conversational agent guiding overall reasoning. It has specific instructions on Christopher's background, professional boundaries, tone, privacy, and conversational discovery limitations.
 3. **Conversational Memory (`Simple Memory`)**: Keeps a sliding window of the last `10` chat interactions mapped uniquely to the browser client's `sessionId`.
 4. **Information Retrieval (Retrieval-Augmented Generation)**:
