@@ -25,7 +25,10 @@ The workflow runs on a **12-hour schedule trigger** or can be manually run. It s
                                                  ↓ (new entries only)
                                            [Copywriter LLM]
                                                  ↓
-                                         [Insert Supabase Row]
+                                      ↙                          ↘
+                          [Insert Supabase Row]       [Download Credential Image]
+                                                               ↓
+                                                    [Publish LinkedIn Post]
 ```
 
 ## How It Works
@@ -33,11 +36,12 @@ The workflow runs on a **12-hour schedule trigger** or can be manually run. It s
 1. **Triggering**: A `Schedule Trigger` fires every 12 hours.
 2. **Credly Fetching**: Downloads the learner profile JSON directly from the Credly user badges endpoint (`getJSONFromCredly`).
 3. **Microsoft Learning Scraping**: Uses Mendable's **Firecrawl** integration (`GetMSBadges`) to scrape Microsoft Learning profile data.
-4. **Structured Parsing**: Uses `GLM-5.2` (OpenRouter) with an output structured parser to parse the scraped unstructured MS Learning page into predefined JSON badge schemas.
+4. **Structured Parsing**: Uses `Gemini-Flash-3.6` (OpenRouter) with an output structured parser to parse the scraped unstructured MS Learning page into predefined JSON badge schemas.
 5. **Data Set Transformations**: Standardizes fields (Issuer, Title, Image URL, Earn/Badge Link, Completion Date, Source, etc.) from both streams into Unified Timeline Event schemas.
 6. **Deduplication (`Compare Datasets`)**: Compares newly fetched credentials with all existing timeline entries fetched from the Supabase `posts` database table. Only credentials with a unique combination of `title` + `url` that do not already exist in Supabase are passed through.
-7. **Copywriter LLM Formatting**: An AI Copywriter agent on `Qwen-3.6-Flash` formats a customized achievement summary paragraph detailing what capabilities were learned.
+7. **Copywriter LLM Formatting**: An AI Copywriter agent on `Gemini-Flash-3.6` generates separate portfolio and LinkedIn copy plus relevant hashtags.
 8. **Supabase Injection**: Appends the final achievement card details to the Supabase `posts` database table.
+9. **LinkedIn Publishing**: Downloads the credential image and publishes the generated LinkedIn copy, hashtags, and image to the configured member profile.
 
 ---
 
@@ -46,7 +50,7 @@ The workflow runs on a **12-hour schedule trigger** or can be manually run. It s
 To run or host this workflow, the following credentials must be connected in n8n:
 
 ### 1. OpenRouter Credentials (`openRouterApi`)
-- Used by the `GLM-5.2` model configuration (MS Learning JSON parsing) and the `Qwen-3.6-Flash` node (timeline paragraph formatting).
+- Used by the `Gemini-Flash-3.6` model configuration for MS Learning JSON parsing and achievement copy.
 - Require a valid OpenRouter API Key.
 
 ### 2. Supabase Credentials (`supabaseApi`)
@@ -56,6 +60,10 @@ To run or host this workflow, the following credentials must be connected in n8n
 ### 3. Firecrawl API Credentials (`firecrawlApi` / Optional depending on Mendable node)
 - Used by `GetMSBadges` to crawl/scrape Javascript-rendered Microsoft profile pages.
 
+### 4. LinkedIn OAuth2 Credentials (`linkedInOAuth2Api`)
+- Used by `Create a post` to publish the generated achievement update and credential image.
+- Requires an authorized LinkedIn member account and the corresponding member/person ID.
+
 ---
 
 ## Import & Configuration Instructions
@@ -63,9 +71,10 @@ To run or host this workflow, the following credentials must be connected in n8n
 1. Copy the JSON contents from [workflow.json](./workflow.json).
 2. Open your n8n workspace, click **Add Workflow** (or **Workflows** → **New workflow**).
 3. Open the top-right menu and choose **Import from File...** or paste the JSON clipboard directly into the workspace canvas.
-4. Create/Select your valid **OpenRouter**, **Supabase**, and **Firecrawl** credentials on the respective n8n nodes.
+4. Create/select valid **OpenRouter**, **Supabase**, **Firecrawl**, and **LinkedIn OAuth2** credentials on the respective n8n nodes.
 5. Setup Microsoft profile parameters:
    - Edit the node `GetMSBadges` to specify your public MS Learn Profile URL.
 6. Setup Credly profile parameters:
    - Edit the HTTP request node `getJSONFromCredly` to specify your exact Credly profile badge JSON endpoint (e.g., `https://www.credly.com/users/your-username/badges.json`).
-7. Save the changes and switch **Active** toggle to true!
+7. Set `YOUR_LINKEDIN_PERSON_ID` in `Create a post` to the LinkedIn member/person ID associated with the OAuth2 credential.
+8. Save the changes and switch **Active** toggle to true!

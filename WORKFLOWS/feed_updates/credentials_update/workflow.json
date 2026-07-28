@@ -2,7 +2,7 @@
   "nodes": [
     {
       "parameters": {
-        "url": "https://www.credly.com/users/christopherjnelson/badges.json",
+        "url": "https://www.credly.com/users/your-username/badges.json",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -13,19 +13,6 @@
       ],
       "id": "77f57d96-0b3f-46bb-98d3-8fa23f367f4c",
       "name": "getJSONFromCredly"
-    },
-    {
-      "parameters": {
-        "jsonSchemaExample": "{\n  \"badges\": [\n    {\n      \"badge_name\": \"Example badge name\",\n      \"badge_image_url\": \"https://example.com/badge.svg\",\n      \"badge_url\": \"https://example.com/badge\",\n      \"completion_date\": \"2026-06-24\",\n      \"description\": \"A brief description of the badge.\"\n    }\n  ]\n}"
-      },
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [
-        -272,
-        416
-      ],
-      "id": "3f0f9bef-4557-4750-9094-4948e83f80b0",
-      "name": "Structured Output Parser"
     },
     {
       "parameters": {
@@ -67,7 +54,7 @@
             },
             {
               "fieldId": "content",
-              "fieldValue": "={{ $json.text }}"
+              "fieldValue": "={{ $json.output.portfolio_text }}"
             },
             {
               "fieldId": "source",
@@ -80,7 +67,7 @@
       "typeVersion": 1,
       "position": [
         1184,
-        160
+        64
       ],
       "id": "1cb9f581-ed38-49c0-8c62-243e0c60efab",
       "name": "Create a row",
@@ -89,7 +76,7 @@
     {
       "parameters": {
         "operation": "scrape",
-        "url": "https://learn.microsoft.com/en-us/users/christopherjnelson/",
+        "url": "https://learn.microsoft.com/en-us/users/your-profile/",
         "requestOptions": {}
       },
       "type": "@mendable/n8n-nodes-firecrawl.firecrawl",
@@ -105,7 +92,8 @@
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are a professional copywriter formatting events for Chris's timeline. You will receive an Event Type, Title, Issuer, and Raw Description.\n\nInstructions based on Event Type:\n\nIf Event Type is 'achievement': Write exactly in this format: \"Chris has completed the [Title] from [Issuer]. He is now familiar with [1-2 sentences summarizing the skills from the description].\"\n\nIf Event Type is 'github_event': Write exactly in this format: \"Chris just pushed a change to [Issuer] and updated [1-2 sentences summarizing the technical changes from the description].\"\n\nInput Data:\nEvent Type: {{ $json.type }}\nTitle: {{ $json.title }}\nIssuer: {{ $json.issuer }}\nDescription: {{ $json.content }}\n\nOutput ONLY the final rewritten paragraph. Do not include introductory text, markdown formatting, or quotes.",
+        "text": "=You create learning-achievement copy for a professional portfolio and LinkedIn.\n\nUse only the supplied information. Do not invent skills, technologies, experience, outcomes, or claims.\n\nCreate these three outputs:\n\nportfolio_text:\n- Begin with “Completed”.\n- Do not use first-person pronouns.\n- Do not refer to the person as Chris, he, him, or his.\n- Mention the issuer and title naturally.\n- Summarize the most valuable skills or subject areas.\n- Use one sentence whenever possible and never more than two.\n- Target 25–50 words.\n- Do not include hashtags.\n- Do not use hype, congratulations, markdown, quotation marks, or introductory text.\n- Do not call the achievement a certification, credential, badge, course, or guided project unless the supplied data supports that label.\n\nlinkedin_text:\n- Write a natural first-person LinkedIn post about completing the achievement.\n- Mention the issuer and title naturally.\n- Briefly explain the most valuable subjects or skills covered.\n- Use plain, confident language suitable for recruiters and technical peers.\n- Target 40–80 words.\n- Avoid exaggerated enthusiasm, generic motivational language, and calls for engagement.\n- Do not include hashtags in this field.\n- Do not invent practical experience or outcomes that are not supported by the data.\n\nhashtags:\n- Return 3–5 relevant hashtags as an array.\n- Include the leading # character.\n- Prefer the issuer, named technologies, and specific subject areas.\n- Avoid generic hashtags such as #Success, #Motivation, #Learning, and #Blessed.\n- Do not repeat hashtags.\n\nSource: {{ $json.source }}\nTitle: {{ $json.title }}\nIssuer: {{ $json.issuer }}\nRaw description: {{ $json.content }}",
+        "hasOutputParser": true,
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
@@ -116,36 +104,6 @@
       ],
       "id": "b5b54609-2cd7-4c06-97ec-b7ebbc24a2ca",
       "name": "Copywriter"
-    },
-    {
-      "parameters": {
-        "model": "qwen/qwen3.6-flash",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        912,
-        384
-      ],
-      "id": "2dca6116-facb-4cb1-8415-2c7d715824e3",
-      "name": "Qwen-3.6-Flash",
-      "credentials": {}
-    },
-    {
-      "parameters": {
-        "model": "z-ai/glm-5.2",
-        "options": {}
-      },
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
-      "typeVersion": 1,
-      "position": [
-        -400,
-        416
-      ],
-      "id": "fbc9972a-46eb-43fb-9288-88ecd26b5e22",
-      "name": "GLM-5.3",
-      "credentials": {}
     },
     {
       "parameters": {
@@ -392,6 +350,84 @@
       ],
       "id": "27d6fbfb-ec0b-4df3-ba1f-db0d51adb8a3",
       "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "person": "YOUR_LINKEDIN_PERSON_ID",
+        "text": "={{ $('Copywriter').item.json.output.linkedin_text + '\\n\\n' + $('Copywriter').item.json.output.hashtags.join(' ') }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        256
+      ],
+      "id": "16f60463-b9e8-4992-9aab-1ae756a9ac2e",
+      "name": "Create a post",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Compare Datasets').item.json.image_url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1184,
+        256
+      ],
+      "id": "11f04f7d-ac05-42f0-89f0-e2f0f717c920",
+      "name": "Download Credential Image"
+    },
+    {
+      "parameters": {
+        "model": "google/gemini-3.6-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenRouter",
+      "typeVersion": 1,
+      "position": [
+        848,
+        384
+      ],
+      "id": "2dca6116-facb-4cb1-8415-2c7d715824e3",
+      "name": "Gemini-Flash-3.6",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"portfolio_text\": \"Completed...\",\n  \"linkedin_text\": \"Completed...\",\n  \"hashtags\": [\"#MicrosoftLearn\", \"#CloudComputing\", \"#ProfessionalDevelopment\"]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        976,
+        384
+      ],
+      "id": "41cdf316-fc7b-4b1c-bde3-84e2eab38db2",
+      "name": "CopywriterOutputParser"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"badges\": [\n    {\n      \"badge_name\": \"Example badge name\",\n      \"badge_image_url\": \"https://example.com/badge.svg\",\n      \"badge_url\": \"https://example.com/badge\",\n      \"completion_date\": \"2026-06-24\",\n      \"description\": \"A brief description of the badge.\"\n    }\n  ]\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        416
+      ],
+      "id": "3f0f9bef-4557-4750-9094-4948e83f80b0",
+      "name": "FormatDataOuputParser"
     }
   ],
   "connections": {
@@ -401,17 +437,6 @@
           {
             "node": "SplitCredlyItems",
             "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Structured Output Parser": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "FormatData",
-            "type": "ai_outputParser",
             "index": 0
           }
         ]
@@ -446,27 +471,10 @@
             "node": "Create a row",
             "type": "main",
             "index": 0
-          }
-        ]
-      ]
-    },
-    "Qwen-3.6-Flash": {
-      "ai_languageModel": [
-        [
+          },
           {
-            "node": "Copywriter",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "GLM-5.3": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "FormatData",
-            "type": "ai_languageModel",
+            "node": "Download Credential Image",
+            "type": "main",
             "index": 0
           }
         ]
@@ -569,11 +577,64 @@
           }
         ]
       ]
+    },
+    "Create a post": {
+      "main": [
+        []
+      ]
+    },
+    "Download Credential Image": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini-Flash-3.6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Copywriter",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "FormatData",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CopywriterOutputParser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Copywriter",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FormatDataOuputParser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "FormatData",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "pinData": {},
   "meta": {
-    "templateCredsSetupCompleted": true,
-    "instanceId": ""
+    "templateCredsSetupCompleted": false
   }
 }
