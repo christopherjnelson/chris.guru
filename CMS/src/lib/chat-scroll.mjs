@@ -62,3 +62,20 @@ export function scrollAfterMessage(container, message, sender) {
 
   scrollToBottom(container);
 }
+
+/**
+ * Create a callback that anchors a growing message at most once.
+ *
+ * @param {Parameters<typeof scrollMessageToStart>[0]} container
+ * @param {Parameters<typeof scrollMessageToStart>[1]} message
+ */
+export function createMessageStartAnchor(container, message) {
+  let anchored = false;
+
+  return () => {
+    if (anchored) return false;
+    anchored = true;
+    scrollMessageToStart(container, message);
+    return true;
+  };
+}

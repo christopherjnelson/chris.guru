@@ -76,9 +76,11 @@
 <script>
   import { marked } from 'marked';
   import {
+    createMessageStartAnchor,
     scrollAfterMessage,
     scrollToBottom,
   } from '../lib/chat-scroll.mjs';
+  import { JsonValueStreamParser } from '../lib/chat-stream.mjs';
 
   // Configure marked for safe parsing
   marked.setOptions({
@@ -228,6 +230,32 @@
     wrapper.appendChild(bubble);
     messages.appendChild(wrapper);
     scrollAfterMessage(messages, wrapper, sender);
+
+    return { wrapper, bubble };
+  }
+
+  function appendStreamingMessage() {
+    if (!messages) return null;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'flex justify-start';
+
+    const bubble = document.createElement('div');
+    bubble.className =
+      'chat-bubble max-w-[80%] rounded-2xl rounded-tl-sm bg-slate-800 px-3 py-2 text-sm text-slate-200';
+
+    wrapper.appendChild(bubble);
+    messages.appendChild(wrapper);
+    createMessageStartAnchor(messages, wrapper)();
+
+    return { wrapper, bubble };
+  }
+
+  function appendStreamError(bubble: HTMLElement) {
+    const notice = document.createElement('p');
+    notice.className = 'chat-stream-error';
+    notice.textContent = 'The response was interrupted. Please try again.';
+    bubble.appendChild(notice);
   }
 
   // Append typing indicator
@@ -277,18 +305,100 @@
         body: JSON.stringify({ message, sessionId }),
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.reply || `Chat request failed with ${res.status}`);
+      if (!res.body) {
+        throw new Error(`Chat request failed with ${res.status}`);
       }
 
-      // Remove typing indicator
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      const parser = new JsonValueStreamParser();
+      let reply = '';
+      let streamedMessage: ReturnType<typeof appendStreamingMessage> = null;
+      let renderFrame: number | null = null;
+      let completed = false;
+      let streamError: string | null = null;
+
+      const renderReply = () => {
+        renderFrame = null;
+        if (streamedMessage) {
+          streamedMessage.bubble.innerHTML = renderMarkdown(reply);
+        }
+      };
+
+      const scheduleRender = () => {
+        if (renderFrame === null) {
+          renderFrame = requestAnimationFrame(renderReply);
+        }
+      };
+
+      const handleValues = (values: unknown[]) => {
+        for (const value of values) {
+          if (!value || typeof value !== 'object' || !('type' in value)) {
+            continue;
+          }
+
+          if (
+            value.type === 'delta' &&
+            'text' in value &&
+            typeof value.text === 'string'
+          ) {
+            reply += value.text;
+            if (!streamedMessage && reply) {
+              typing?.remove();
+              streamedMessage = appendStreamingMessage();
+            }
+            scheduleRender();
+          } else if (value.type === 'done') {
+            completed = true;
+          } else if (value.type === 'error') {
+            streamError =
+              'message' in value && typeof value.message === 'string'
+                ? value.message
+                : 'The response stream ended unexpectedly.';
+          }
+        }
+      };
+
+      try {
+        while (!completed && !streamError) {
+          const { done, value } = await reader.read();
+          if (done) {
+            handleValues(parser.push(decoder.decode()));
+            parser.finish();
+            break;
+          }
+
+          handleValues(
+            parser.push(decoder.decode(value, { stream: true }))
+          );
+        }
+      } finally {
+        if (completed || streamError) {
+          await reader.cancel().catch(() => {});
+        }
+        reader.releaseLock();
+      }
+
+      if (renderFrame !== null) {
+        cancelAnimationFrame(renderFrame);
+        renderReply();
+      }
+
       typing?.remove();
 
-      // Append Ziggy's reply
-      appendMessage(data.reply || 'Hmm, I did not quite catch that.', 'bot');
-      setAvailability(true);
+      if (streamError || !res.ok) {
+        if (streamedMessage && reply) {
+          appendStreamError(streamedMessage.bubble);
+        } else {
+          appendMessage('Sorry, something went wrong. Please try again.', 'bot');
+        }
+        setAvailability(false);
+      } else {
+        if (!streamedMessage) {
+          appendMessage('Hmm, I did not quite catch that.', 'bot');
+        }
+        setAvailability(true);
+      }
     } catch (err) {
       // Remove typing indicator
       typing?.remove();
@@ -392,5 +502,10 @@
     margin: 0.5rem 0;
     border: none;
     border-top: 1px solid rgb(51 65 85);
+  }
+  .chat-bubble .chat-stream-error {
+    margin-top: 0.75rem;
+    color: rgb(251 113 133);
+    font-size: 0.75rem;
   }
 </style>

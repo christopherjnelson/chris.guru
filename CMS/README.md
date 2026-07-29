@@ -25,7 +25,7 @@ A lightweight, server-side rendered portfolio website built with **Astro** and c
 - **Certifications section** — certifications and learning paths fetched from a dedicated `creds` table in Supabase, grouped by category in a grid layout (matching the Skills section). If a `url` is provided, the cred renders as a clickable external link with an icon.
 - **Activity feed** — latest 20 posts fetched from Supabase (all types), ordered by date descending, rendered as a timeline with progressive disclosure. The first 5 posts are visible on page load; a "Load More" button reveals the next 5 on click and disappears once everything is shown. Source filter tabs ("All" plus one tab per distinct `source` value found in the fetched posts) let visitors narrow the timeline; pagination resets per tab and "Load More" pages within the active filter. Each post card includes source-specific icons (GitHub, Slack, Microsoft, Okta), type-based accent colors, optional image, and external link support.
 - **Projects section** — public GitHub repositories fetched server-side from the GitHub API (`christopherjnelson`), filtered to exclude forks and sorted by star count. Each repo renders as a card with name, description, language badge, star count, and last updated date.
-- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Proxied through an Astro API route to an n8n webhook to avoid CORS issues. Bot responses parse markdown via `marked` (bold, italic, lists, code, links, headings, blockquotes) with DOM-based sanitization for XSS safety; user input is escaped via `textContent`. Paragraph and `<br>` spacing tuned for readable multi-paragraph responses.
+- **Ziggy AI chat widget** — floating chat widget (bottom-right) with a toggle button, message bubbles, typing indicator, and vanilla JS. Responses stream from n8n through an Astro NDJSON proxy, render incremental sanitized Markdown, and remain anchored at the beginning so long answers do not jump past their opening. User input is escaped via `textContent`.
 - **Enhanced footer** — 3-column layout with navigation links, social links (LinkedIn, GitHub), and humorous "AI Reviews" from Gemini, ChatGPT, and Grok with stylized logos.
 - **JSON health endpoint** — `GET /api/test` returns `{"status":"Node SSR is active"}` to verify server endpoints.
 - **n8n webhook endpoint** — `POST /api/webhooks/achievement` accepts authorized POST requests to insert new achievements into Supabase.
@@ -105,6 +105,18 @@ HOST=127.0.0.1 PORT=3000 node ./dist/server/entry.mjs
 server {
     listen 80;
     server_name portfolio.example.com;
+
+    location = /api/chat {
+        proxy_pass         http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_buffering    off;
+        proxy_cache        off;
+        proxy_read_timeout 60s;
+        proxy_set_header   Host              $host;
+        proxy_set_header   X-Real-IP         $remote_addr;
+        proxy_set_header   X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto $scheme;
+    }
 
     location / {
         proxy_pass         http://127.0.0.1:3000;
@@ -193,18 +205,29 @@ CMS/
 | ------ | ------------------------------ | ----------------------------- | --------------------------------- | ------------------------------------------------ |
 | `GET`  | `/api/test`                    | None                          | `{"status":"Node SSR is active"}` | Health check / SSR verification                  |
 | `GET`  | `/api/health`                   | None                          | `{"status":"online"|"offline"}`   | Query the dedicated n8n health webhook |
-| `POST` | `/api/chat`                    | None                          | `{"reply":"..."}`                 | Proxy user message to n8n webhook for Ziggy AI   |
+| `POST` | `/api/chat`                    | None                          | NDJSON event stream               | Stream Ziggy response events from n8n             |
 | `POST` | `/api/webhooks/achievement`    | `Authorization` header        | `{"success":true}`                | Insert a new achievement into Supabase (for n8n) |
 
 ### Chat API Usage
 
 ```bash
-curl -X POST http://localhost:4321/api/chat \
+curl -N -X POST http://localhost:4321/api/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"What does Chris do?"}'
 ```
 
-The proxy sends `{"chatInput": "What does Chris do?"}` to the n8n webhook and returns `{"reply": "Ziggy's response"}`.
+The proxy sends `{"chatInput":"What does Chris do?","sessionId":"..."}` to the
+n8n webhook and returns newline-delimited events:
+
+```json
+{"type":"delta","text":"Ziggy's "}
+{"type":"delta","text":"response"}
+{"type":"done"}
+```
+
+Errors use `{"type":"error","message":"..."}`. The response includes
+`X-Accel-Buffering: no`, but the reverse proxies in front of both Astro and n8n
+must also allow chunked responses through without buffering.
 
 The chat widget starts offline and enables input only after `/api/health` receives
 the expected `{"status":"online"}` response from the dedicated n8n health

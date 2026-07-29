@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
+  createMessageStartAnchor,
   scrollAfterMessage,
   scrollMessageToStart,
   scrollToBottom,
@@ -72,4 +73,19 @@ test('does not install ongoing forced scrolling after positioning a bot reply', 
   container.scrollHeight = 1_200;
 
   assert.equal(container.scrollTop, 175);
+});
+
+test('anchors a growing streamed reply only once', () => {
+  const container = createContainer({ scrollTop: 80 });
+  const message = { getBoundingClientRect: () => ({ top: 340 }) };
+  const anchor = createMessageStartAnchor(container, message);
+
+  assert.equal(anchor(), true);
+  assert.equal(container.scrollTop, 304);
+
+  container.scrollTop = 190;
+  container.scrollHeight = 1_400;
+
+  assert.equal(anchor(), false);
+  assert.equal(container.scrollTop, 190);
 });

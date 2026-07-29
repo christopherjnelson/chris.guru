@@ -1,60 +1,35 @@
 import type { APIRoute } from 'astro';
+import {
+  ChatProxyError,
+  ndjsonErrorResponse,
+  proxyChatStream,
+} from '../../lib/chat-proxy.mjs';
 
 export const POST: APIRoute = async ({ request }) => {
   try {
     const { message, sessionId } = await request.json();
 
-    if (!message) {
-      return new Response(
-        JSON.stringify({ reply: 'No message provided.' }),
-        { status: 400, headers: { 'Content-Type': 'application/json' } }
-      );
+    if (typeof message !== 'string' || !message.trim()) {
+      return ndjsonErrorResponse('No message provided.', 400);
     }
 
     const webhookUrl = import.meta.env.N8N_CHAT_WEBHOOK;
 
     if (!webhookUrl) {
-      throw new Error('N8N_CHAT_WEBHOOK is not configured');
+      return ndjsonErrorResponse('Chat is not configured.', 503);
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 30_000);
-
-    let res: Response;
-    try {
-      res = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chatInput: message, sessionId }),
-        signal: controller.signal,
-      });
-    } finally {
-      clearTimeout(timeout);
-    }
-
-    if (!res.ok) {
-      throw new Error(`n8n responded with ${res.status}`);
-    }
-
-    const data = await res.json();
-
-    // n8n may return the reply in various shapes — handle common ones
-    const reply =
-      data.reply ??
-      data.output ??
-      data.message ??
-      (typeof data === 'string' ? data : "I'm not sure how to respond to that.");
-
-    return new Response(
-      JSON.stringify({ reply }),
-      { status: 200, headers: { 'Content-Type': 'application/json' } }
-    );
-  } catch (err) {
-    return new Response(
-      JSON.stringify({
-        reply: "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
-      }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    return await proxyChatStream({
+      webhookUrl,
+      message: message.trim(),
+      sessionId,
+      clientSignal: request.signal,
+    });
+  } catch (error) {
+    const status = error instanceof ChatProxyError ? error.status : 500;
+    return ndjsonErrorResponse(
+      "Sorry, I'm having trouble connecting right now. Please try again in a moment.",
+      status
     );
   }
 };
