@@ -107,7 +107,9 @@ export function normalizeN8nValue(value) {
   }
 
   if (value.type === 'end') {
-    return [{ type: 'done' }];
+    // n8n emits an end event for each internal agent phase, including tool
+    // calls. The upstream HTTP body closing is the public completion signal.
+    return [];
   }
 
   if (value.type === 'error') {
