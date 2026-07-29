@@ -75,6 +75,10 @@
 
 <script>
   import { marked } from 'marked';
+  import {
+    scrollAfterMessage,
+    scrollToBottom,
+  } from '../lib/chat-scroll.mjs';
 
   // Configure marked for safe parsing
   marked.setOptions({
@@ -159,13 +163,6 @@
     input?.focus();
   });
 
-  // Auto-scroll to bottom
-  function scrollToBottom() {
-    if (messages) {
-      messages.scrollTop = messages.scrollHeight;
-    }
-  }
-
   // Sanitize HTML to prevent XSS from markdown output
   function sanitizeHtml(html: string): string {
     const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -230,7 +227,7 @@
 
     wrapper.appendChild(bubble);
     messages.appendChild(wrapper);
-    scrollToBottom();
+    scrollAfterMessage(messages, wrapper, sender);
   }
 
   // Append typing indicator
@@ -247,7 +244,7 @@
 
     wrapper.appendChild(bubble);
     messages.appendChild(wrapper);
-    scrollToBottom();
+    scrollToBottom(messages);
 
     return wrapper;
   }
