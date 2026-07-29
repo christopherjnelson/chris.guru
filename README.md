@@ -38,13 +38,10 @@ autonomous-portfolio-cms/
 │   ├── astro.config.mjs
 │   ├── tsconfig.json
 │   └── README.md               # CMS-specific documentation
-├── WORKFLOWS/                  # Sanitized n8n workflow exports
-│   ├── skills/
-│   ├── certifications/
-│   ├── achievements/
-│   ├── projects/
-│   ├── ziggy/
-│   ├── shared/
+├── workflows/                  # Sanitized n8n workflow exports
+│   ├── feed_updates/
+│   ├── knowledge_vectors/
+│   ├── portfolio_chatbot/
 │   └── README.md               # Workflow documentation & conventions
 ├── docs/
 │   └── deployment.md           # Deployment documentation (current & planned)
@@ -58,9 +55,9 @@ autonomous-portfolio-cms/
 
 The Astro SSR portfolio website. Serves the public-facing portfolio with About, Skills, Certifications, Achievements Feed, and Projects sections. Includes the Ziggy AI chat widget. See [`CMS/README.md`](CMS/README.md) for full documentation.
 
-### `WORKFLOWS/`
+### `workflows/`
 
-Sanitized exports of n8n workflows that synchronize data from Notion to Supabase and power portfolio automation. See [`WORKFLOWS/README.md`](WORKFLOWS/README.md) for workflow conventions and safety guidelines.
+Sanitized exports of n8n workflows that synchronize public portfolio data, maintain the Supabase vector knowledge base, publish feed updates, and power Ziggy. See [`workflows/README.md`](workflows/README.md) for the workflow inventory and sanitization guidelines.
 
 ### `docs/`
 
@@ -120,7 +117,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 ## Security Notes
 
 - `.env` files are gitignored and must never be committed
-- n8n credential exports are gitignored — see [`WORKFLOWS/README.md`](WORKFLOWS/README.md)
+- n8n credential exports are gitignored — see [`workflows/README.md`](workflows/README.md)
 - Supabase RLS policies restrict access to the `anon` role
 - The Ziggy chat widget sanitizes all bot responses with DOM-based XSS filtering
 - User input in the chat widget is escaped via `textContent`
@@ -128,7 +125,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 ## Documentation
 
 - [`CMS/README.md`](CMS/README.md) — Full CMS documentation (features, API, database schema)
-- [`WORKFLOWS/README.md`](WORKFLOWS/README.md) — n8n workflow conventions and safety
+- [`workflows/README.md`](workflows/README.md) — n8n workflow inventory, conventions, and safety
 - [`docs/deployment.md`](docs/deployment.md) — Deployment model
 
 ## Current Status and Roadmap
@@ -143,13 +140,13 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 - [x] Favicon and avatar
 - [x] Wiki links (wiki.chris.guru)
 - [x] GitHub Actions deployment to DigitalOcean (initial)
-- [x] Repository restructured into CMS + WORKFLOWS + docs
+- [x] Repository restructured into CMS + workflows + docs
 - [x] Feed pagination / progressive disclosure (Load More pattern)
 - [x] Deployment migration — Dedicated `deploy` user with restricted permissions, systemd-managed process, and updated GitHub Action
 
 ### Planned
 
-- [ ] Export and commit sanitized n8n workflows
+- [x] Export and document sanitized n8n workflows
 - [ ] Authentication & admin middleware for content management
 - [x] Build out the Projects section (GitHub repos via GitHub API)
 - [ ] RSS/Atom feed for achievements

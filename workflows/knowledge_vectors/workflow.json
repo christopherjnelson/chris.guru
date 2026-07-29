@@ -1,0 +1,1023 @@
+{
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        528,
+        1296
+      ],
+      "id": "18f353ad-7ebb-418a-9c50-5db139837814",
+      "name": "Manual Refresh"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 3
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        528,
+        1536
+      ],
+      "id": "4aec8210-2dcf-444a-9601-6f955a3abc76",
+      "name": "Daily 3 AM Refresh"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "your-projects-data-source-id",
+          "mode": "list",
+          "cachedResultName": "Projects Portfolio",
+          "cachedResultUrl": ""
+        },
+        "returnAll": true,
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        784,
+        896
+      ],
+      "id": "8329bb6b-41e7-4dc7-9a38-6e700268258f",
+      "name": "Get Projects",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"content\": \"# Project: {{ $json.properties.Project.title[0].plain_text }}\\n\\n**Type:** {{ $json.properties.Type.select.name }}\\n**Status:** {{ $json.properties.Status.status.name }}\\n**Featured:** {{ $json.properties.Featured.checkbox ? 'Yes' : 'No' }}\\n**Stack / Tools:** {{ $json.properties['Stack / Tools'].multi_select.map(item => item.name).join(', ') }}\\n\\n## Problem Solved\\n{{ $json.properties['Problem Solved'].rich_text.map(item => item.plain_text).join('') }}\\n\\n## Outcome\\n{{ $json.properties.Outcome.rich_text.map(item => item.plain_text).join('') }}\\n\\n## Resume Summary\\n{{ $json.properties['Resume Bullet'].rich_text.map(item => item.plain_text).join('') }}\\n\\n**Project Link:** {{ $json.properties.Link.url || 'Not provided' }}\\n**Notion Source:** {{ $json.url }}\",\n  \"schema_version\": 2,\n  \"source\": \"notion\",\n  \"source_type\": \"project\",\n  \"document_key\": \"notion:project:{{ $json.id }}\",\n  \"page_title\": \"{{ $json.properties.Project.title[0].plain_text }}\",\n  \"page_id\": \"{{ $json.id }}\",\n  \"page_url\": \"{{ $json.url }}\",\n  \"public_url\": \"{{ $json.public_url || '' }}\",\n  \"notion_database_id\": \"{{ $json.parent.database_id }}\",\n  \"notion_data_source_id\": \"{{ $json.parent.data_source_id }}\",\n  \"last_edited_time\": \"{{ $json.last_edited_time }}\",\n  \"category\": \"{{ $json.properties.Type.select.name }}\",\n  \"status\": \"{{ $json.properties.Status.status.name }}\",\n  \"featured\": {{ $json.properties.Featured.checkbox }},\n  \"tools\": \"{{ $json.properties['Stack / Tools'].multi_select.map(item => item.name).join(', ') }}\",\n  \"external_url\": \"{{ $json.properties.Link.url || '' }}\",\n  \"fetch_page_body\": true\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        896
+      ],
+      "id": "a998794a-f70a-43fd-ae3f-d17eea913977",
+      "name": "Normalize Projects"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "your-experience-data-source-id",
+          "mode": "list",
+          "cachedResultName": "Experience Library",
+          "cachedResultUrl": ""
+        },
+        "returnAll": true,
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        784,
+        1168
+      ],
+      "id": "3a8f36e5-ff0b-47e8-ab2d-8089f09eeb0f",
+      "name": "Get Experience",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ ({\n  content: '# Experience: ' + ($json.properties.Chapter.title || []).map(item => item.plain_text).join('') + '\\n\\n**Organization:** ' + ($json.properties.Organization.rich_text || []).map(item => item.plain_text).join('') + '\\n**Location:** ' + ($json.properties.Location.rich_text || []).map(item => item.plain_text).join('') + '\\n**Category:** ' + (($json.properties.Category.select || {}).name || 'Not specified') + '\\n**Start:** ' + (($json.properties.Start.date || {}).start || 'Not specified') + '\\n**End:** ' + (($json.properties.End.date || {}).start || 'Present') + '\\n**Featured:** ' + ($json.properties.Featured.checkbox ? 'Yes' : 'No') + '\\n**Skills Demonstrated:** ' + ($json.properties['Skills Demonstrated'].multi_select || []).map(item => item.name).join(', ') + '\\n\\n## Resume Summary\\n' + ($json.properties['Resume Bullet'].rich_text || []).map(item => item.plain_text).join('') + '\\n\\n**Notion Source:** ' + $json.url,\n  schema_version: 2,\n  source: 'notion',\n  source_type: 'experience',\n  document_key: 'notion:experience:' + $json.id,\n  page_title: ($json.properties.Chapter.title || []).map(item => item.plain_text).join(''),\n  page_id: $json.id,\n  page_url: $json.url,\n  public_url: $json.public_url || '',\n  notion_database_id: $json.parent.database_id,\n  notion_data_source_id: $json.parent.data_source_id,\n  last_edited_time: $json.last_edited_time,\n  category: (($json.properties.Category.select || {}).name || ''),\n  status: (($json.properties.End.date || {}).start ? 'Completed' : 'Current'),\n  featured: $json.properties.Featured.checkbox,\n  tools: ($json.properties['Skills Demonstrated'].multi_select || []).map(item => item.name).join(', '),\n  external_url: '',\n  fetch_page_body: true\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        1168
+      ],
+      "id": "50bccd92-0b13-4b84-87b9-476a0d9107f3",
+      "name": "Normalize Experience"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "your-skills-data-source-id",
+          "mode": "list",
+          "cachedResultName": "Skills Matrix",
+          "cachedResultUrl": ""
+        },
+        "returnAll": true,
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        784,
+        1456
+      ],
+      "id": "a757b8ef-9658-44e5-9433-346e8aa00af6",
+      "name": "Get Skills",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "10000000-0000-4000-8000-000000000008",
+              "leftValue": "={{ $json.properties.Archived.checkbox }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "false",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        1456
+      ],
+      "id": "826a45d0-545e-4826-a280-9e4d24ec76ba",
+      "name": "Active Skills Only"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ ({\n  content: '# Skill: ' + ($json.properties.Skill.title || []).map(item => item.plain_text).join('') + '\\n\\n**Category:** ' + (($json.properties.Category.select || {}).name || 'Not specified') + '\\n**Level:** ' + (($json.properties.Level.select || {}).name || 'Not specified') + '\\n**Currently Learning:** ' + ($json.properties['Currently Learning'].checkbox ? 'Yes' : 'No') + '\\n**Resume Priority:** ' + (($json.properties['Resume Priority'].select || {}).name || 'Not specified') + '\\n**Aliases:** ' + (($json.properties.Aliases.rich_text || []).map(item => item.plain_text).join('') || 'None') + '\\n**Keywords:** ' + ($json.properties.Keywords.multi_select || []).map(item => item.name).join(', ') + '\\n\\n## Evidence\\n' + (($json.properties.Evidence.rich_text || []).map(item => item.plain_text).join('') || 'No evidence note provided.') + '\\n\\n**Notion Source:** ' + $json.url,\n  schema_version: 2,\n  source: 'notion',\n  source_type: 'skill',\n  document_key: 'notion:skill:' + $json.id,\n  page_title: ($json.properties.Skill.title || []).map(item => item.plain_text).join(''),\n  page_id: $json.id,\n  page_url: $json.url,\n  public_url: $json.public_url || '',\n  notion_database_id: $json.parent.database_id,\n  notion_data_source_id: $json.parent.data_source_id,\n  last_edited_time: $json.last_edited_time,\n  category: (($json.properties.Category.select || {}).name || ''),\n  status: (($json.properties.Level.select || {}).name || ''),\n  featured: (($json.properties['Resume Priority'].select || {}).name === 'High'),\n  tools: ($json.properties.Keywords.multi_select || []).map(item => item.name).join(', '),\n  external_url: '',\n  fetch_page_body: false\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1296,
+        1440
+      ],
+      "id": "96fa9445-180b-43a8-8f44-485730dd6189",
+      "name": "Normalize Skills"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "databasePage",
+        "operation": "getAll",
+        "dataSourceId": {
+          "__rl": true,
+          "value": "your-credentials-data-source-id",
+          "mode": "list",
+          "cachedResultName": "Credentials Tracker",
+          "cachedResultUrl": ""
+        },
+        "returnAll": true,
+        "simple": false,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        784,
+        1744
+      ],
+      "id": "ad8390a3-3fc4-4034-8a8b-53b2dad61af0",
+      "name": "Get Credentials",
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ ({\n  content: '# Credential: ' + ($json.properties.Credential.title || []).map(item => item.plain_text).join('') + '\\n\\n**Provider:** ' + (($json.properties.Provider.select || {}).name || 'Not specified') + '\\n**Category:** ' + (($json.properties.Category.select || {}).name || 'Not specified') + '\\n**Type:** ' + (($json.properties.Type.select || {}).name || 'Not specified') + '\\n**Status:** ' + (($json.properties.Status.status || {}).name || 'Not specified') + '\\n**Resume Priority:** ' + (($json.properties['Resume Priority'].select || {}).name || 'Not specified') + '\\n\\n## Why It Matters\\n' + (($json.properties['Why It Matters'].rich_text || []).map(item => item.plain_text).join('') || 'No summary provided.') + '\\n\\n**Credential URL:** ' + ($json.properties['Credential URL'].url || 'Not provided') + '\\n**Notion Source:** ' + $json.url,\n  schema_version: 2,\n  source: 'notion',\n  source_type: 'credential',\n  document_key: 'notion:credential:' + $json.id,\n  page_title: ($json.properties.Credential.title || []).map(item => item.plain_text).join(''),\n  page_id: $json.id,\n  page_url: $json.url,\n  public_url: $json.public_url || '',\n  notion_database_id: $json.parent.database_id,\n  notion_data_source_id: $json.parent.data_source_id,\n  last_edited_time: $json.last_edited_time,\n  category: (($json.properties.Category.select || {}).name || ''),\n  status: (($json.properties.Status.status || {}).name || ''),\n  featured: (($json.properties['Resume Priority'].select || {}).name === 'High'),\n  tools: (($json.properties.Provider.select || {}).name || ''),\n  external_url: $json.properties['Credential URL'].url || '',\n  fetch_page_body: false\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1040,
+        1744
+      ],
+      "id": "4a1760cd-ea77-4fc3-813d-b916ccacbf0f",
+      "name": "Normalize Credentials"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1568,
+        1056
+      ],
+      "id": "9bdfe027-c333-44e1-b76c-fc00dcd18c82",
+      "name": "Append Projects and Experience"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1808,
+        1248
+      ],
+      "id": "8a75c55b-6dc3-48cd-9ad6-e4c68347f7df",
+      "name": "Append Skills"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2048,
+        1392
+      ],
+      "id": "1c0e838c-a7d1-475d-ae05-f48b5cebbd9d",
+      "name": "Append Credentials"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2288,
+        1392
+      ],
+      "id": "c06eec50-a61a-4f5b-819d-62c874bcba20",
+      "name": "Loop Over Documents"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "10000000-0000-4000-8000-000000000017",
+              "leftValue": "={{ $json.fetch_page_body }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        2528,
+        1408
+      ],
+      "id": "9e7f4faf-81bd-4849-84c7-1f6cd7db1168",
+      "name": "Fetch Page Body?"
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "value": "={{ $json.page_url }}",
+          "mode": "url"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 3,
+      "position": [
+        2784,
+        1200
+      ],
+      "id": "fcf73547-26bd-4f46-a081-19bc24d55c28",
+      "name": "Get Current Page Blocks",
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "blocks",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        3024,
+        1200
+      ],
+      "id": "97db8745-130d-46eb-9327-8a533b1af94b",
+      "name": "Aggregate Current Page Blocks"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10000000-0000-4000-8000-000000000021",
+              "name": "page_body",
+              "value": "={{ ($json.blocks || []).map((block) => { const type = block.type; const value = block[type] || {}; const text = (value.rich_text || []).map((part) => part.plain_text || (part.text && part.text.content) || '').join(''); if (type === 'divider') return '---'; if (!text) return ''; if (type === 'heading_1') return '# ' + text; if (type === 'heading_2') return '## ' + text; if (type === 'heading_3') return '### ' + text; if (type === 'bulleted_list_item') return '- ' + text; if (type === 'numbered_list_item') return '1. ' + text; if (type === 'to_do') return '- [' + (value.checked ? 'x' : ' ') + '] ' + text; if (type === 'quote') return '> ' + text; if (type === 'code') return '```' + (value.language || '') + '\\n' + text + '\\n```'; if (type === 'callout') return '> ' + text; return text; }).filter(Boolean).join('\\n\\n') }}",
+              "type": "string"
+            },
+            {
+              "id": "10000000-0000-4000-8000-000000000022",
+              "name": "page_body_block_count",
+              "value": "={{ ($json.blocks || []).filter(block => block && block.type).length }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3264,
+        1200
+      ],
+      "id": "b87e4ea6-3025-422e-8bb1-cabf837a032e",
+      "name": "Convert Current Blocks to Text"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3504,
+        1344
+      ],
+      "id": "8f1f74b5-3e46-42a6-8bd5-44838952959a",
+      "name": "Merge Document and Page Body"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "10000000-0000-4000-8000-000000000025",
+              "name": "content",
+              "value": "={{ $json.content + (($json.page_body || '').trim() ? '\\n\\n## Detailed Page Notes\\n\\n' + $json.page_body.trim() : '') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3744,
+        1344
+      ],
+      "id": "32df3bc6-14f0-40cf-8f46-168c81327554",
+      "name": "Build Document With Page Body"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3984,
+        1504
+      ],
+      "id": "303f9e54-be99-48f1-baea-a2784f7f57b0",
+      "name": "Current Document Ready"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "knowledge_vectors_v2",
+        "filterType": "string",
+        "filterString": "=metadata->>document_key=eq.{{ $json.document_key }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        4224,
+        1632
+      ],
+      "id": "e1dba4da-e631-4069-a01f-77343c0916f7",
+      "name": "Delete Existing Document Vectors",
+      "alwaysOutputData": true,
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "deleted_vectors",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        4464,
+        1632
+      ],
+      "id": "bd625729-b2a5-41fa-80cd-ad9299f493ec",
+      "name": "Confirm Old Vectors Deleted"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4704,
+        1504
+      ],
+      "id": "91884ec7-2423-4b7f-a82f-7e1271935ab0",
+      "name": "Continue After Replacement Cleanup"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "knowledge_vectors_v2",
+          "mode": "list",
+          "cachedResultName": "knowledge_vectors_v2"
+        },
+        "options": {}
+      },
+      "id": "af51fe76-bfca-489f-958c-5035682f602c",
+      "name": "Insert Current Document Vectors",
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.3,
+      "position": [
+        4944,
+        1504
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "model": "baai/bge-m3",
+        "options": {
+          "dimensions": 1024,
+          "batchSize": 100
+        }
+      },
+      "id": "2cfd9f35-4221-42ae-8944-746773d6e304",
+      "name": "OpenRouter BGE-M3",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        4800,
+        1760
+      ],
+      "credentials": {}
+    },
+    {
+      "parameters": {
+        "jsonMode": "expressionData",
+        "jsonData": "={{ $json.content }}",
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "schema_version",
+                "value": "={{ $json.schema_version }}"
+              },
+              {
+                "name": "document_key",
+                "value": "={{ $json.document_key }}"
+              },
+              {
+                "name": "source",
+                "value": "={{ $json.source }}"
+              },
+              {
+                "name": "source_type",
+                "value": "={{ $json.source_type }}"
+              },
+              {
+                "name": "sync_run_id",
+                "value": "={{ $execution.id }}"
+              },
+              {
+                "name": "page_title",
+                "value": "={{ $json.page_title }}"
+              },
+              {
+                "name": "page_id",
+                "value": "={{ $json.page_id }}"
+              },
+              {
+                "name": "page_url",
+                "value": "={{ $json.page_url }}"
+              },
+              {
+                "name": "public_url",
+                "value": "={{ $json.public_url }}"
+              },
+              {
+                "name": "notion_database_id",
+                "value": "={{ $json.notion_database_id }}"
+              },
+              {
+                "name": "notion_data_source_id",
+                "value": "={{ $json.notion_data_source_id }}"
+              },
+              {
+                "name": "last_edited_time",
+                "value": "={{ $json.last_edited_time }}"
+              },
+              {
+                "name": "category",
+                "value": "={{ $json.category }}"
+              },
+              {
+                "name": "status",
+                "value": "={{ $json.status }}"
+              },
+              {
+                "name": "featured",
+                "value": "={{ $json.featured }}"
+              },
+              {
+                "name": "tools",
+                "value": "={{ $json.tools }}"
+              },
+              {
+                "name": "external_url",
+                "value": "={{ $json.external_url }}"
+              },
+              {
+                "name": "page_body_block_count",
+                "value": "={{ $json.page_body_block_count || 0 }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "133df018-d49c-4fc1-bdda-01621ddf2965",
+      "name": "Notion Document Loader",
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4960,
+        1760
+      ]
+    },
+    {
+      "parameters": {
+        "chunkSize": 1200,
+        "chunkOverlap": 150,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        5104,
+        1968
+      ],
+      "id": "fe7d6eed-ef1f-4fbb-940a-1c3d3cd1a9e5",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "knowledge_vectors_v2",
+        "filterType": "string",
+        "filterString": "=metadata->>source=eq.notion&metadata->>sync_run_id=neq.{{ $execution.id }}"
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2576,
+        1088
+      ],
+      "id": "2e2b47d2-ed12-4de0-ba10-cfc2899a13dd",
+      "name": "Delete Stale Notion Vectors",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {}
+    }
+  ],
+  "connections": {
+    "Manual Refresh": {
+      "main": [
+        [
+          {
+            "node": "Get Projects",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Experience",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Skills",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily 3 AM Refresh": {
+      "main": [
+        [
+          {
+            "node": "Get Projects",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Experience",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Skills",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Projects": {
+      "main": [
+        [
+          {
+            "node": "Normalize Projects",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Projects": {
+      "main": [
+        [
+          {
+            "node": "Append Projects and Experience",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Experience": {
+      "main": [
+        [
+          {
+            "node": "Normalize Experience",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Experience": {
+      "main": [
+        [
+          {
+            "node": "Append Projects and Experience",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Skills": {
+      "main": [
+        [
+          {
+            "node": "Active Skills Only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Active Skills Only": {
+      "main": [
+        [
+          {
+            "node": "Normalize Skills",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Skills": {
+      "main": [
+        [
+          {
+            "node": "Append Skills",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Get Credentials": {
+      "main": [
+        [
+          {
+            "node": "Normalize Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Credentials": {
+      "main": [
+        [
+          {
+            "node": "Append Credentials",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Append Projects and Experience": {
+      "main": [
+        [
+          {
+            "node": "Append Skills",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Skills": {
+      "main": [
+        [
+          {
+            "node": "Append Credentials",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Credentials": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Documents": {
+      "main": [
+        [
+          {
+            "node": "Delete Stale Notion Vectors",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Page Body?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Page Body?": {
+      "main": [
+        [
+          {
+            "node": "Merge Document and Page Body",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Current Page Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Current Document Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Current Page Blocks": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Current Page Blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Current Page Blocks": {
+      "main": [
+        [
+          {
+            "node": "Convert Current Blocks to Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Current Blocks to Text": {
+      "main": [
+        [
+          {
+            "node": "Merge Document and Page Body",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Document and Page Body": {
+      "main": [
+        [
+          {
+            "node": "Build Document With Page Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Document With Page Body": {
+      "main": [
+        [
+          {
+            "node": "Current Document Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Current Document Ready": {
+      "main": [
+        [
+          {
+            "node": "Continue After Replacement Cleanup",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Delete Existing Document Vectors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete Existing Document Vectors": {
+      "main": [
+        [
+          {
+            "node": "Confirm Old Vectors Deleted",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirm Old Vectors Deleted": {
+      "main": [
+        [
+          {
+            "node": "Continue After Replacement Cleanup",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Continue After Replacement Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Insert Current Document Vectors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insert Current Document Vectors": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Documents",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter BGE-M3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Insert Current Document Vectors",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion Document Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Insert Current Document Vectors",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Notion Document Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": ""
+  }
+}

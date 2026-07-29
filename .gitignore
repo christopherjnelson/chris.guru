@@ -36,7 +36,7 @@ pnpm-debug.log*
 .idea/
 
 # n8n credentials and secrets — never commit
-WORKFLOWS/credentials/
-WORKFLOWS/**/*.credentials.json
-WORKFLOWS/**/*.secrets.json
-WORKFLOWS/**/.env
+workflows/credentials/
+workflows/**/*.credentials.json
+workflows/**/*.secrets.json
+workflows/**/.env

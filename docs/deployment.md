@@ -33,10 +33,10 @@ The workflow file at `.github/workflows/deploy.yml`:
 ├── apps/
 │   └── autonomous-portfolio/
 │       ├── CMS/
-│       ├── WORKFLOWS/
+│       ├── workflows/
 │       ├── docs/
 │       └── .github/
-└── deploy.sh
+└── deploy-cms.sh
 ```
 
 ### systemd Service
