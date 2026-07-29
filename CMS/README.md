@@ -46,6 +46,7 @@ PUBLIC_SUPABASE_URL="https://your-project.supabase.co"
 PUBLIC_SUPABASE_ANON_KEY="your-anon-key"
 WEBHOOK_SECRET="your-secret-key-for-n8n"
 N8N_CHAT_WEBHOOK="https://your-n8n-instance/webhook/your-chat-webhook-id"
+N8N_HEALTH_WEBHOOK="https://your-n8n-instance/webhook/your-health-webhook-id"
 GITHUB_TOKEN="your-github-personal-access-token"
 ```
 
@@ -55,6 +56,7 @@ GITHUB_TOKEN="your-github-personal-access-token"
 | `PUBLIC_SUPABASE_ANON_KEY`    | Supabase anon key (public, used for SSR reads)  |
 | `WEBHOOK_SECRET`              | Shared secret for n8n webhook authorization      |
 | `N8N_CHAT_WEBHOOK`            | n8n webhook URL for Ziggy AI chat proxy (server-side only) |
+| `N8N_HEALTH_WEBHOOK`          | n8n GET webhook for Ziggy availability checks (server-side only) |
 | `GITHUB_TOKEN`                | GitHub PAT for API rate limit increase (server-side only, no scopes required) |
 
 ## Getting Started
@@ -189,7 +191,7 @@ CMS/
 | Method | Route                          | Auth                          | Response                          | Description                                      |
 | ------ | ------------------------------ | ----------------------------- | --------------------------------- | ------------------------------------------------ |
 | `GET`  | `/api/test`                    | None                          | `{"status":"Node SSR is active"}` | Health check / SSR verification                  |
-| `GET`  | `/api/health`                   | None                          | `{"status":"online"|"offline"}`   | Send a lightweight heartbeat to the n8n chat webhook |
+| `GET`  | `/api/health`                   | None                          | `{"status":"online"|"offline"}`   | Query the dedicated n8n health webhook |
 | `POST` | `/api/chat`                    | None                          | `{"reply":"..."}`                 | Proxy user message to n8n webhook for Ziggy AI   |
 | `POST` | `/api/webhooks/achievement`    | `Authorization` header        | `{"success":true}`                | Insert a new achievement into Supabase (for n8n) |
 
@@ -204,8 +206,9 @@ curl -X POST http://localhost:4321/api/chat \
 The proxy sends `{"chatInput": "What does Chris do?"}` to the n8n webhook and returns `{"reply": "Ziggy's response"}`.
 
 The chat widget starts offline and enables input only after `/api/health` receives
-the expected `{"status":"online"}` heartbeat response from n8n. It checks again
-periodically, when the tab becomes visible, and when an offline widget is opened.
+the expected `{"status":"online"}` response from the dedicated n8n health
+webhook. It checks again periodically, when the tab becomes visible, and when an
+offline widget is opened.
 
 ### Webhook Usage
 

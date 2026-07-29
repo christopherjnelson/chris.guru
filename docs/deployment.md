@@ -61,6 +61,11 @@ EnvironmentFile=/home/deploy/apps/autonomous-portfolio/CMS/.env
 WantedBy=multi-user.target
 ```
 
+The production `CMS/.env` must define both `N8N_CHAT_WEBHOOK` for chat requests
+and `N8N_HEALTH_WEBHOOK` for the dedicated GET availability check. Because this
+file is ignored by Git, update it directly on the server before restarting the
+service.
+
 ### Deploy Script
 
 ```bash
