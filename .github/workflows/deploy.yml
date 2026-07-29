@@ -1,6 +1,7 @@
 name: Deploy to DigitalOcean
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
@@ -17,12 +18,46 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Validate deployment configuration
+        env:
+          N8N_HEALTH_WEBHOOK: ${{ secrets.N8N_HEALTH_WEBHOOK }}
+        run: |
+          if [ -z "$N8N_HEALTH_WEBHOOK" ]; then
+            echo "::error::Required repository secret N8N_HEALTH_WEBHOOK is not configured."
+            exit 1
+          fi
+
       - name: Execute deployment script via SSH
         uses: appleboy/ssh-action@v1.0.3
+        env:
+          N8N_HEALTH_WEBHOOK: ${{ secrets.N8N_HEALTH_WEBHOOK }}
         with:
           host: ${{ secrets.DROPLET_IP }}
           username: ${{ secrets.DROPLET_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: N8N_HEALTH_WEBHOOK
           script_stop: true
           script: |
+            export N8N_HEALTH_WEBHOOK
             /home/deploy/deploy-cms.sh
+
+      - name: Verify chatbot health
+        run: |
+          for attempt in {1..12}; do
+            status="$(
+              curl --fail --silent --show-error --max-time 15 \
+                https://chris.guru/api/health |
+                jq --raw-output '.status // empty'
+            )" || status=""
+
+            if [ "$status" = "online" ]; then
+              echo "Chatbot health check passed."
+              exit 0
+            fi
+
+            echo "Chatbot is not online yet (attempt $attempt/12)."
+            sleep 5
+          done
+
+          echo "::error::Chatbot health check did not report online after deployment."
+          exit 1

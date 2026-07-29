@@ -15,8 +15,8 @@ This document describes the deployment model for the Autonomous Portfolio CMS.
 - **Platform**: DigitalOcean droplet
 - **User**: `deploy` (dedicated non-human user with limited sudo access)
 - **Trigger**: GitHub Action on push to `main`
-- **Method**: The GitHub Action uses `appleboy/ssh-action` to SSH into the droplet and execute `/home/deploy/deploy.sh`
-- **Deploy script**: `/home/deploy/deploy.sh` — pulls latest code, installs dependencies, builds, and restarts the Node server via systemd
+- **Method**: The GitHub Action uses `appleboy/ssh-action` to SSH into the droplet and execute `/home/deploy/deploy-cms.sh`
+- **Deploy script**: `/home/deploy/deploy-cms.sh` — pulls latest code, installs dependencies, builds, and restarts the Node server via systemd
 - **Process management**: systemd service (`portfolio.service`)
 
 ### GitHub Action
@@ -24,7 +24,7 @@ This document describes the deployment model for the Autonomous Portfolio CMS.
 The workflow file at `.github/workflows/deploy.yml`:
 1. Triggers on push to `main`
 2. SSHs into the droplet using secrets (`DROPLET_IP`, `DROPLET_USER`, `SSH_PRIVATE_KEY`)
-3. Executes `/home/deploy/deploy.sh`
+3. Passes `N8N_HEALTH_WEBHOOK` from GitHub Actions secrets and executes `/home/deploy/deploy-cms.sh`
 
 ### Directory Structure
 
@@ -61,16 +61,17 @@ EnvironmentFile=/home/deploy/apps/autonomous-portfolio/CMS/.env
 WantedBy=multi-user.target
 ```
 
-The production `CMS/.env` must define both `N8N_CHAT_WEBHOOK` for chat requests
-and `N8N_HEALTH_WEBHOOK` for the dedicated GET availability check. Because this
-file is ignored by Git, update it directly on the server before restarting the
-service.
+The production `CMS/.env` defines `N8N_CHAT_WEBHOOK` for chat requests. The
+dedicated `N8N_HEALTH_WEBHOOK` is stored as a GitHub Actions repository secret
+and passed to the remote build by the deployment workflow. Astro embeds the
+health URL during `npm run build`, so the workflow fails before deployment when
+the secret is absent.
 
 ### Deploy Script
 
 ```bash
 #!/bin/bash
-# /home/deploy/deploy.sh
+# /home/deploy/deploy-cms.sh
 set -euo pipefail
 
 APP_DIR="/home/deploy/apps/autonomous-portfolio"
@@ -122,4 +123,4 @@ If the GitHub Action is unavailable, deploy manually by SSHing into the droplet:
 
 ```bash
 ssh deploy@<droplet-ip>
-/home/deploy/deploy.sh
+/home/deploy/deploy-cms.sh

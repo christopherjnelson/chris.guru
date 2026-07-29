@@ -129,7 +129,7 @@ The repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml
 
 1. A push to `main` triggers the workflow
 2. The workflow uses [`appleboy/ssh-action`](https://github.com/appleboy/ssh-action) to SSH into the droplet
-3. It executes `/home/deploy/deploy.sh` on the droplet, which pulls the latest code, installs dependencies, builds, and restarts the Node server via systemd
+3. It passes the `N8N_HEALTH_WEBHOOK` repository secret and executes `/home/deploy/deploy-cms.sh` on the droplet, which pulls the latest code, installs dependencies, builds, and restarts the Node server via systemd
 
 ### Required GitHub Repository Secrets
 
@@ -138,6 +138,7 @@ The repository includes a GitHub Actions workflow (`.github/workflows/deploy.yml
 | `DROPLET_IP`       | IP address of the DigitalOcean droplet           |
 | `DROPLET_USER`     | SSH username (e.g., `deploy`)                    |
 | `SSH_PRIVATE_KEY`  | Private SSH key authorized on the droplet        |
+| `N8N_HEALTH_WEBHOOK` | Dedicated n8n GET webhook embedded during the production build |
 
 ### Manual deployment
 
@@ -145,7 +146,7 @@ If needed, you can still deploy manually by SSHing into the droplet and running:
 
 ```bash
 ssh deploy@<droplet-ip>
-/home/deploy/deploy.sh
+/home/deploy/deploy-cms.sh
 ```
 
 ## Project Structure

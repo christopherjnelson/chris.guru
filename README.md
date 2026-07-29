@@ -115,6 +115,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 | `DROPLET_IP`       | DigitalOcean droplet IP address                  |
 | `DROPLET_USER`     | SSH username                                     |
 | `SSH_PRIVATE_KEY`  | Private SSH key authorized on the droplet        |
+| `N8N_HEALTH_WEBHOOK` | Dedicated n8n GET webhook embedded during the production build |
 
 ## Security Notes
 
