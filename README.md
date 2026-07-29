@@ -38,11 +38,8 @@ autonomous-portfolio-cms/
 │   ├── astro.config.mjs
 │   ├── tsconfig.json
 │   └── README.md               # CMS-specific documentation
-├── workflows/                  # Sanitized n8n workflow exports
-│   ├── feed_updates/
-│   ├── knowledge_vectors/
-│   ├── portfolio_chatbot/
-│   └── README.md               # Workflow documentation & conventions
+├── workflows/
+│   └── README.md               # Pointer to canonical n8n workflows
 ├── docs/
 │   └── deployment.md           # Deployment documentation (current & planned)
 ├── .gitignore
@@ -57,7 +54,11 @@ The Astro SSR portfolio website. Serves the public-facing portfolio with About, 
 
 ### `workflows/`
 
-Sanitized exports of n8n workflows that synchronize public portfolio data, maintain the Supabase vector knowledge base, publish feed updates, and power Ziggy. See [`workflows/README.md`](workflows/README.md) for the workflow inventory and sanitization guidelines.
+Architectural pointer to the dedicated
+[`n8n-workflows`](https://github.com/christopherjnelson/n8n-workflows/tree/master/chris-guru)
+repository, which contains the sanitized exports and setup guides for workflows
+that synchronize public portfolio data, maintain the Supabase vector knowledge
+base, publish feed updates, and power Ziggy.
 
 ### `docs/`
 
@@ -117,7 +118,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 ## Security Notes
 
 - `.env` files are gitignored and must never be committed
-- n8n credential exports are gitignored — see [`workflows/README.md`](workflows/README.md)
+- Sanitized n8n exports are maintained in the dedicated [`n8n-workflows`](https://github.com/christopherjnelson/n8n-workflows/tree/master/chris-guru) repository; credentials and secrets must never be committed
 - Supabase RLS policies restrict access to the `anon` role
 - The Ziggy chat widget sanitizes all bot responses with DOM-based XSS filtering
 - User input in the chat widget is escaped via `textContent`
@@ -125,7 +126,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 ## Documentation
 
 - [`CMS/README.md`](CMS/README.md) — Full CMS documentation (features, API, database schema)
-- [`workflows/README.md`](workflows/README.md) — n8n workflow inventory, conventions, and safety
+- [`workflows/README.md`](workflows/README.md) — Pointer to canonical n8n exports and setup instructions
 - [`docs/deployment.md`](docs/deployment.md) — Deployment model
 
 ## Current Status and Roadmap
@@ -146,7 +147,7 @@ GitHub Actions deployment secrets are configured in the repository settings, not
 
 ### Planned
 
-- [x] Export and document sanitized n8n workflows
+- [x] Centralize sanitized n8n workflows in the dedicated workflow repository
 - [ ] Authentication & admin middleware for content management
 - [x] Build out the Projects section (GitHub repos via GitHub API)
 - [ ] RSS/Atom feed for achievements
