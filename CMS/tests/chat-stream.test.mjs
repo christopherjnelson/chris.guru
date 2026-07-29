@@ -133,6 +133,23 @@ test('delivers the first event before a delayed upstream chunk arrives', async (
   parser.finish();
 });
 
+test('continues through intermediate agent phase endings', async () => {
+  const normalized = createNormalizedChatStream(
+    streamFromChunks([
+      '{"type":"begin"}\n{"type":"end"}\n',
+      '{"type":"begin"}\n{"type":"end"}\n',
+      '{"type":"begin"}\n{"type":"item","content":"Final "}\n',
+      '{"type":"item","content":"answer"}\n{"type":"end"}\n',
+    ])
+  );
+
+  assert.deepEqual(await readEvents(normalized), [
+    { type: 'delta', text: 'Final ' },
+    { type: 'delta', text: 'answer' },
+    { type: 'done' },
+  ]);
+});
+
 test('emits an error event for malformed or incomplete upstream data', async () => {
   const malformed = createNormalizedChatStream(
     streamFromChunks(['{"type":"item","content":"unfinished"'])
